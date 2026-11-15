@@ -625,7 +625,7 @@ pub struct SpecialtyTab {
 }
 
 pub const SPECIALTY_TABS: &[SpecialtyTab] =
-    &[SpecialtyTab { tab: "SHEET METAL", icon: "sheet" }, SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" }];
+    &[SpecialtyTab { tab: "SHEET METAL", icon: "sheet" }, SpecialtyTab { tab: "WELDMENTS", icon: "frame_member" }, SpecialtyTab { tab: "WOOD", icon: "box" }];
 
 /// A tab's row in the toolbar menu: the icon of the command that leads the tab (Model › Create ›
 /// Extrude, Inspect › Measure, View › Views and so on).
@@ -961,7 +961,7 @@ mod tests {
     fn contextual_tabs_follow_the_active_body_and_allow_other_tabs() {
         let mut h = crate::scenario::Harness::new();
         let mut fresh = TABS.to_vec();
-        fresh.extend(["SHEET METAL", "WELDMENTS"]);
+        fresh.extend(["SHEET METAL", "WELDMENTS", "WOOD"]);
         assert_eq!(visible_tabs(&h.app), fresh, "SHEET METAL and WELDMENTS are reachable before any sheet body or member exists");
         h.app.run("sketch.create", json!({"plane":"XY"})).unwrap();
         assert_eq!(h.app.ui.tab, "SKETCH");

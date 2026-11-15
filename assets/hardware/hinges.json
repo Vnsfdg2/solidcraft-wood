@@ -1,0 +1,100 @@
+{
+  "description": "Rozstawy zawiasów puszkowych i prowadników meblowych",
+  "standards": [
+    {
+      "id": "BLUM_45_9.5",
+      "name": "Standard Blum / GTV / Häfele (45 / 9.5)",
+      "front": {
+        "cup_diameter_mm": 35.0,
+        "cup_depth_mm": 13.0,
+        "edge_distance_k_mm": 4.5,
+        "screw_spacing_x_mm": 45.0,
+        "screw_offset_y_mm": 9.5,
+        "screw_hole_diameter_mm": 2.5,
+        "screw_hole_depth_mm": 2.5
+      },
+      "bok": {
+        "edge_distance_mm": 37.0,
+        "spacing_z_mm": 32.0,
+        "screw_hole_diameter_mm": 3.0,
+        "screw_hole_depth_mm": 10.0
+      }
+    },
+    {
+      "id": "HETTICH_TS_48_6",
+      "name": "Standard Hettich TS (48 / 6)",
+      "front": {
+        "cup_diameter_mm": 35.0,
+        "cup_depth_mm": 12.8,
+        "edge_distance_k_mm": 4.5,
+        "screw_spacing_x_mm": 48.0,
+        "screw_offset_y_mm": 6.0,
+        "screw_hole_diameter_mm": 2.5,
+        "screw_hole_depth_mm": 2.5
+      },
+      "bok": {
+        "edge_distance_mm": 37.0,
+        "spacing_z_mm": 32.0,
+        "screw_hole_diameter_mm": 3.0,
+        "screw_hole_depth_mm": 10.0
+      }
+    },
+    {
+      "id": "HETTICH_TH_52_5.5",
+      "name": "Standard Hettich TH / Grass (52 / 5.5)",
+      "front": {
+        "cup_diameter_mm": 35.0,
+        "cup_depth_mm": 12.8,
+        "edge_distance_k_mm": 4.5,
+        "screw_spacing_x_mm": 52.0,
+        "screw_offset_y_mm": 5.5,
+        "screw_hole_diameter_mm": 2.5,
+        "screw_hole_depth_mm": 2.5
+      },
+      "bok": {
+        "edge_distance_mm": 37.0,
+        "spacing_z_mm": 32.0,
+        "screw_hole_diameter_mm": 3.0,
+        "screw_hole_depth_mm": 10.0
+      }
+    },
+    {
+      "id": "HAFELE_52_7.5",
+      "name": "Standard Häfele Seria 315 / Salice (52 / 7.5)",
+      "front": {
+        "cup_diameter_mm": 35.0,
+        "cup_depth_mm": 13.0,
+        "edge_distance_k_mm": 4.5,
+        "screw_spacing_x_mm": 52.0,
+        "screw_offset_y_mm": 7.5,
+        "screw_hole_diameter_mm": 2.5,
+        "screw_hole_depth_mm": 2.5
+      },
+      "bok": {
+        "edge_distance_mm": 37.0,
+        "spacing_z_mm": 32.0,
+        "screw_hole_diameter_mm": 3.0,
+        "screw_hole_depth_mm": 10.0
+      }
+    },
+    {
+      "id": "MINI_26_38_7.5",
+      "name": "Standard Puszki MINI fi 26mm (38 / 7.5)",
+      "front": {
+        "cup_diameter_mm": 26.0,
+        "cup_depth_mm": 10.5,
+        "edge_distance_k_mm": 3.5,
+        "screw_spacing_x_mm": 38.0,
+        "screw_offset_y_mm": 7.5,
+        "screw_hole_diameter_mm": 2.0,
+        "screw_hole_depth_mm": 2.0
+      },
+      "bok": {
+        "edge_distance_mm": 37.0,
+        "spacing_z_mm": 32.0,
+        "screw_hole_diameter_mm": 3.0,
+        "screw_hole_depth_mm": 10.0
+      }
+    }
+  ]
+}

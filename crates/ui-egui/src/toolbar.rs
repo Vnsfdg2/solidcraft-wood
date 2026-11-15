@@ -1613,6 +1613,10 @@ pub fn toolbar(app: &mut SolveApp, ui: &mut egui::Ui) {
         ribbon_tabs(app, ui, Rect::from_min_max(pos2(ribbon_left, r.top()), pos2(r.right(), r.top() + TAB_ROW_HEIGHT)));
         // Panels.
         let tab = app.ui.tab.clone();
+        if tab == "WOOD" {
+            crate::wood_loader::render_ribbon(app, ui, Rect::from_min_max(pos2(ribbon_left, r.top() + TAB_ROW_HEIGHT), r.max));
+            return;
+        }
         // The command whose tool or dialog is open right now, shown pressed in the toolbar.
         let running = running_command(app);
         // The command the search points out (#7287): a preview while a result is hovered, or the

@@ -1,0 +1,36 @@
+[package]
+name = "wood"
+description = "SolidCraft Wood: parametric furniture design module (Kubatura, Formatki, Wolna Formatka, Jointy, Rozkrój) with hot-reload support"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+# Enables dynamic hot-reloading of `target/debug/wood.dll` (.so/.dylib) at runtime (e.g. on F5 or file change).
+dynamic-wood = ["dep:libloading"]
+
+# The workspace lints, except unsafe_code: denied, not forbidden, so that src/loader.rs and the cdylib
+# entry point can allow it when `dynamic-wood` is active. Keep the rest in sync with [workspace.lints].
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+too_many_arguments = "allow"
+type_complexity = "allow"
+neg_cmp_op_on_partial_ord = "allow"
+
+[dependencies]
+egui = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+libloading = { workspace = true, optional = true }

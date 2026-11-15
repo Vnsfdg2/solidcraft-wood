@@ -52,6 +52,8 @@ pub struct DocSlot {
     edit_in_place: Option<crate::edit_in_place::PartContext>,
     /// The dialog or tool it had open and its toolbar tab, kept while another design is shown.
     work: DocWork,
+    /// Per-document state of the Wood module (panel numbering, panels, edgebands, BOM, tool picks).
+    wood_state: wood::WoodState,
     /// What it has computing off the window thread or waiting its turn.
     jobs: crate::deferred::DocJobs,
 }
@@ -145,6 +147,7 @@ impl DocSlot {
             link_stamps: Vec::new(),
             edit_in_place: None,
             work: DocWork::default(),
+            wood_state: wood::WoodState::default(),
             jobs: Default::default(),
         }
     }
@@ -237,6 +240,21 @@ fn swap_in(app: &mut SolveApp, mut slot: DocSlot) -> DocSlot {
     let out_rev = app.session.revision;
     // A click's point means nothing in the other design.
     app.edit_anchor_hint = None;
+    let hot_gen = app.wood.state.hot_reload_generation;
+    let hot_req = app.wood.state.reload_requested;
+    let export_dir = app.wood.state.export_step_dir.clone();
+    let mut outgoing_wood = std::mem::replace(&mut app.wood.state, slot.wood_state);
+    app.wood.state.hot_reload_generation = hot_gen;
+    app.wood.state.reload_requested = hot_req;
+    if app.wood.state.export_step_dir.is_empty() && !export_dir.is_empty() {
+        app.wood.state.export_step_dir = export_dir;
+    }
+    if !app.preferences.keep_work_on_tab_switch || app.applying.is_some() {
+        outgoing_wood.active_dialog = None;
+        outgoing_wood.ghost_box = None;
+        outgoing_wood.ghost_cylinders = None;
+        outgoing_wood.ghost_faces.clear();
+    }
     let mut out = DocSlot {
         session: std::mem::replace(&mut app.session, slot.session),
         autosave: app.autosave.as_mut().and_then(|a| std::mem::replace(&mut a.active, slot.autosave)),
@@ -251,6 +269,7 @@ fn swap_in(app: &mut SolveApp, mut slot: DocSlot) -> DocSlot {
         link_stamps: std::mem::replace(&mut app.docs.link_stamps, slot.link_stamps),
         edit_in_place: std::mem::replace(&mut app.edit_in_place.active, slot.edit_in_place),
         work,
+        wood_state: outgoing_wood,
         jobs: app.swap_jobs(slot.jobs),
     };
     // Only the displayed design owns the process-wide crash replay journal.
@@ -462,6 +481,7 @@ pub fn adopt(app: &mut SolveApp, session: Session) {
         crate::design_properties::close_object(app);
         crate::sketch_attachment_ui::clear(app);
         app.session.replace_design(session);
+        app.wood.state.reset_for_document();
         reset_chat(app);
         // The blank design's record of its links goes with it; the new one's start now.
         app.docs.link_stamps.clear();
@@ -486,6 +506,7 @@ pub fn new_design(app: &mut SolveApp) {
     }
     app.home.open = false;
     if active_is_blank(app) {
+        app.wood.state.reset_for_document();
         crate::prefs::apply_new_design(app);
         return;
     }
@@ -519,6 +540,7 @@ pub fn new_tab(app: &mut SolveApp) {
 /// when the preference says otherwise.
 pub fn prepare_open(app: &mut SolveApp) {
     if active_is_blank(app) {
+        app.wood.state.reset_for_document();
         crate::prefs::apply_new_design(app);
         return;
     }
@@ -557,6 +579,7 @@ pub fn close(app: &mut SolveApp, i: usize, force: bool) {
         crate::dialogs::cancel(app);
         app.tool = None;
         app.session.replace_design(Session::default());
+        app.wood.state.reset_for_document();
         app.session.revision = rev + 1;
         crate::prefs::apply_new_design(app);
         app.cam = Camera::default();

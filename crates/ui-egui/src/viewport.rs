@@ -5210,6 +5210,7 @@ pub fn show(app: &mut SolveApp, ui: &mut egui::Ui) {
     crate::sketch_tools::show(app, ui, &painter, &proj);
     crate::sketch_line_arc::paint_mode(app, ui, &painter, &proj);
     crate::design_properties::overlay(app, &painter, &proj);
+    crate::wood_loader::paint_viewport_preview(app, &painter, &proj);
     crate::sketch_dims::show(app, ui, &proj);
     crate::select_other::show(app, ui.ctx());
     axis_view(app, ui, rect);

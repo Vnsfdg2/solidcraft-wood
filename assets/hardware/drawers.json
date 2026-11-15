@@ -1,0 +1,233 @@
+{
+  "description": "Uniwersalna biblioteka systemów szuflad meblowych (wymiary formatek dna i pleców oraz rozstawy nawierceń prowadnic, frontów i ścianek tylnych)",
+  "systems": [
+    {
+      "id": "SEVROLL_VBOX_18_3D_SLIM",
+      "brand": "Sevroll",
+      "name": "Sevroll V-BOX 18 3D SLIM (płyta 18 mm)",
+      "short_code": "vbox_slim",
+      "board_thickness_mm": 18.0,
+      "bottom_width_deduction_mm": 75.0,
+      "bottom_depth_deduction_mm": 24.0,
+      "back_width_deduction_mm": 87.0,
+      "min_depth_clearance_mm": 3.0,
+      "push_open_front_gap_mm": 0.0,
+      "runner_first_hole_from_edge_mm": 37.0,
+      "runner_hole_z_from_bottom_mm": 33.0,
+      "bottom_panel_z_from_bottom_mm": 6.0,
+      "front_hole_side_offset_mm": 15.5,
+      "front_first_hole_z_from_bottom_mm": 47.5,
+      "back_hole_side_offset_mm": 9.0,
+      "screw_hole_diameter_mm": 2.5,
+      "screw_hole_depth_mm": 2.5,
+      "heights": [
+        {
+          "id": "H80",
+          "name": "80 mm (plecy 71 mm, min. 95 mm)",
+          "drawer_height_mm": 80.0,
+          "min_space_height_mm": 95.0,
+          "back_height_mm": 71.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0],
+          "back_hole_top_offsets_mm": [22.0, 54.0]
+        },
+        {
+          "id": "H95",
+          "name": "95 mm (plecy 86 mm, min. 110 mm)",
+          "drawer_height_mm": 95.0,
+          "min_space_height_mm": 110.0,
+          "back_height_mm": 86.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 64.0],
+          "back_hole_top_offsets_mm": [20.0, 52.0]
+        },
+        {
+          "id": "H127",
+          "name": "127 mm (plecy 118 mm, min. 142 mm)",
+          "drawer_height_mm": 127.0,
+          "min_space_height_mm": 142.0,
+          "back_height_mm": 118.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 64.0],
+          "back_hole_top_offsets_mm": [22.0, 54.0, 86.0]
+        },
+        {
+          "id": "H178",
+          "name": "178 mm (plecy 169 mm, min. 192 mm)",
+          "drawer_height_mm": 178.0,
+          "min_space_height_mm": 192.0,
+          "back_height_mm": 169.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 96.0, 128.0],
+          "back_hole_top_offsets_mm": [39.0, 71.0, 103.0, 135.0]
+        },
+        {
+          "id": "H210",
+          "name": "210 mm (plecy 200 mm, min. 223 mm)",
+          "drawer_height_mm": 210.0,
+          "min_space_height_mm": 223.0,
+          "back_height_mm": 200.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 96.0, 128.0],
+          "back_hole_top_offsets_mm": [22.0, 38.0, 102.0, 134.0, 166.0]
+        },
+        {
+          "id": "H238",
+          "name": "238 mm (plecy 230 mm, min. 253 mm)",
+          "drawer_height_mm": 238.0,
+          "min_space_height_mm": 253.0,
+          "back_height_mm": 230.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 96.0, 128.0],
+          "back_hole_top_offsets_mm": [36.0, 68.0, 164.0, 196.0]
+        }
+      ],
+      "lengths": [
+        {
+          "nl_mm": 250.0,
+          "runner_hole_x_offsets_mm": [0.0, 96.0]
+        },
+        {
+          "nl_mm": 270.0,
+          "runner_hole_x_offsets_mm": [0.0, 96.0]
+        },
+        {
+          "nl_mm": 300.0,
+          "runner_hole_x_offsets_mm": [0.0, 128.0]
+        },
+        {
+          "nl_mm": 350.0,
+          "runner_hole_x_offsets_mm": [0.0, 128.0]
+        },
+        {
+          "nl_mm": 400.0,
+          "runner_hole_x_offsets_mm": [0.0, 192.0]
+        },
+        {
+          "nl_mm": 450.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0]
+        },
+        {
+          "nl_mm": 500.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0]
+        },
+        {
+          "nl_mm": 550.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0]
+        },
+        {
+          "nl_mm": 600.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0, 352.0]
+        }
+      ]
+    },
+    {
+      "id": "SEVROLL_VBOX_18_3D_SLIM_PUSH_II",
+      "brand": "Sevroll",
+      "name": "Sevroll V-BOX 18 3D SLIM PUSH II (Push-Open)",
+      "short_code": "vbox_push2",
+      "board_thickness_mm": 18.0,
+      "bottom_width_deduction_mm": 75.0,
+      "bottom_depth_deduction_mm": 24.0,
+      "back_width_deduction_mm": 87.0,
+      "min_depth_clearance_mm": 3.0,
+      "push_open_front_gap_mm": 4.0,
+      "runner_first_hole_from_edge_mm": 37.0,
+      "runner_hole_z_from_bottom_mm": 33.0,
+      "bottom_panel_z_from_bottom_mm": 6.0,
+      "front_hole_side_offset_mm": 15.5,
+      "front_first_hole_z_from_bottom_mm": 47.5,
+      "back_hole_side_offset_mm": 9.0,
+      "screw_hole_diameter_mm": 2.5,
+      "screw_hole_depth_mm": 2.5,
+      "heights": [
+        {
+          "id": "H80",
+          "name": "80 mm (plecy 71 mm, min. 93 mm)",
+          "drawer_height_mm": 80.0,
+          "min_space_height_mm": 93.0,
+          "back_height_mm": 71.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0],
+          "back_hole_top_offsets_mm": [22.0, 54.0]
+        },
+        {
+          "id": "H95",
+          "name": "95 mm (plecy 86 mm, min. 108 mm)",
+          "drawer_height_mm": 95.0,
+          "min_space_height_mm": 108.0,
+          "back_height_mm": 86.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 64.0],
+          "back_hole_top_offsets_mm": [20.0, 52.0]
+        },
+        {
+          "id": "H127",
+          "name": "127 mm (plecy 118 mm, min. 140 mm)",
+          "drawer_height_mm": 127.0,
+          "min_space_height_mm": 140.0,
+          "back_height_mm": 118.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 64.0],
+          "back_hole_top_offsets_mm": [22.0, 54.0, 86.0]
+        },
+        {
+          "id": "H178",
+          "name": "178 mm (plecy 169 mm, min. 190 mm)",
+          "drawer_height_mm": 178.0,
+          "min_space_height_mm": 190.0,
+          "back_height_mm": 169.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 96.0, 128.0],
+          "back_hole_top_offsets_mm": [39.0, 71.0, 103.0, 135.0]
+        },
+        {
+          "id": "H210",
+          "name": "210 mm (plecy 200 mm, min. 221 mm)",
+          "drawer_height_mm": 210.0,
+          "min_space_height_mm": 221.0,
+          "back_height_mm": 200.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 96.0, 128.0],
+          "back_hole_top_offsets_mm": [22.0, 38.0, 102.0, 134.0, 166.0]
+        },
+        {
+          "id": "H238",
+          "name": "238 mm (plecy 230 mm, min. 251 mm)",
+          "drawer_height_mm": 238.0,
+          "min_space_height_mm": 251.0,
+          "back_height_mm": 230.0,
+          "front_hole_z_offsets_mm": [0.0, 32.0, 96.0, 128.0],
+          "back_hole_top_offsets_mm": [36.0, 68.0, 164.0, 196.0]
+        }
+      ],
+      "lengths": [
+        {
+          "nl_mm": 250.0,
+          "runner_hole_x_offsets_mm": [0.0, 96.0]
+        },
+        {
+          "nl_mm": 270.0,
+          "runner_hole_x_offsets_mm": [0.0, 96.0]
+        },
+        {
+          "nl_mm": 300.0,
+          "runner_hole_x_offsets_mm": [0.0, 128.0]
+        },
+        {
+          "nl_mm": 350.0,
+          "runner_hole_x_offsets_mm": [0.0, 128.0]
+        },
+        {
+          "nl_mm": 400.0,
+          "runner_hole_x_offsets_mm": [0.0, 192.0]
+        },
+        {
+          "nl_mm": 450.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0]
+        },
+        {
+          "nl_mm": 500.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0]
+        },
+        {
+          "nl_mm": 550.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0]
+        },
+        {
+          "nl_mm": 600.0,
+          "runner_hole_x_offsets_mm": [0.0, 224.0, 352.0]
+        }
+      ]
+    }
+  ]
+}

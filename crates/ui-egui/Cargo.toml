@@ -8,7 +8,12 @@ license.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = ["dynamic-wood"]
+dynamic-wood = ["wood/dynamic-wood"]
+
 [dependencies]
+wood = { workspace = true }
 solidcore-record = { workspace = true }
 solidcraft-engine = { workspace = true }
 egui = { workspace = true }

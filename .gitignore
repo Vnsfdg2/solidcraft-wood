@@ -15,3 +15,13 @@ mutants.out*/
 # external corpus downloads (cargo xtask external-corpus, #1397): fetched at test time,
 # hash-pinned in tests/external-corpus.toml; never commit case data
 /corpus/
+
+# Local SolidCraft Wood working/debug files and root hardware JSON duplicates (canonical files live in assets/hardware/)
+/safe.log
+/models/
+/cnc_joints.json
+/connectors.json
+/decors.json
+/drawers.json
+/edgebanding.json
+/hinges.json

@@ -1,0 +1,72 @@
+{
+  "categories": [
+    {
+      "id": "kolki",
+      "label": "Kołki drewniane",
+      "through_face_default": false,
+      "items": [
+        {
+          "id": "dowel_8x35",
+          "name": "Kołek 8×35",
+          "edge_hole": { "diameter": 8.0, "depth": 24.0 },
+          "face_hole": { "diameter": 8.0, "depth": 12.0 }
+        },
+        {
+          "id": "dowel_8x40",
+          "name": "Kołek 8×40",
+          "edge_hole": { "diameter": 8.0, "depth": 26.0 },
+          "face_hole": { "diameter": 8.0, "depth": 14.0 }
+        },
+        {
+          "id": "dowel_8x50",
+          "name": "Kołek 8×50",
+          "edge_hole": { "diameter": 8.0, "depth": 34.0 },
+          "face_hole": { "diameter": 8.0, "depth": 16.0 }
+        },
+        {
+          "id": "dowel_10x50",
+          "name": "Kołek 10×50",
+          "edge_hole": { "diameter": 10.0, "depth": 34.0 },
+          "face_hole": { "diameter": 10.0, "depth": 16.0 }
+        }
+      ]
+    },
+    {
+      "id": "wkrety",
+      "label": "Wkręty i Konfirmaty",
+      "through_face_default": true,
+      "items": [
+        {
+          "id": "confirmat_7x50",
+          "name": "Konfirmat 7×50",
+          "edge_hole": { "diameter": 5.0, "depth": 38.0 },
+          "face_hole": { "diameter": 7.0, "depth": 0.0 }
+        },
+        {
+          "id": "confirmat_64x50",
+          "name": "Konfirmat 6.4×50",
+          "edge_hole": { "diameter": 4.5, "depth": 38.0 },
+          "face_hole": { "diameter": 6.4, "depth": 0.0 }
+        },
+        {
+          "id": "confirmat_5x40",
+          "name": "Konfirmat 5×40",
+          "edge_hole": { "diameter": 3.5, "depth": 30.0 },
+          "face_hole": { "diameter": 5.0, "depth": 0.0 }
+        },
+        {
+          "id": "screw_4x50",
+          "name": "Wkręt 4×50",
+          "edge_hole": { "diameter": 3.0, "depth": 35.0 },
+          "face_hole": { "diameter": 4.0, "depth": 0.0 }
+        },
+        {
+          "id": "screw_45x60",
+          "name": "Wkręt 4.5×60",
+          "edge_hole": { "diameter": 3.2, "depth": 42.0 },
+          "face_hole": { "diameter": 4.5, "depth": 0.0 }
+        }
+      ]
+    }
+  ]
+}

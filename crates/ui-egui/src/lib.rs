@@ -317,6 +317,7 @@ mod viewport_details;
 mod viewport_layout;
 mod viewport_status;
 mod viewport_status_fixture;
+pub mod wood_loader;
 pub mod workspace;
 
 use std::sync::mpsc::Receiver;
@@ -557,6 +558,8 @@ pub struct SolveApp {
     pub sketch_report: Option<sketch_report::SketchReport>,
     /// The Bill of Materials window, when open.
     pub bom: Option<bom_panel::BomPanel>,
+    /// The SolidCraft Wood module runtime (state + hot-reloadable DLL vtable).
+    pub wood: wood::loader::WoodRuntime,
     material_card_review: Option<material_card_review::ReviewWindow>,
     /// Context menus, rename box and Properties window.
     pub menu: context_menu::MenuState,
@@ -814,6 +817,7 @@ impl SolveApp {
             design_properties: None,
             sketch_report: None,
             bom: None,
+            wood: wood_loader::new_runtime(),
             material_card_review: None,
             menu: context_menu::MenuState::default(),
             gesture: mouse_gesture::State::default(),
@@ -1449,6 +1453,7 @@ impl SolveApp {
                     prefs::apply_new_design(self);
                 }
                 if matches!(id, "file.new" | "doc.open" | "doc.recover") {
+                    self.wood.state.reset_for_document();
                     documents::reset_chat(self);
                     self.edit_in_place.active = None;
                     render_workspace::reset_document(self);
@@ -2810,6 +2815,7 @@ impl SolveApp {
     /// Per-frame logic before layout.
     pub fn logic(&mut self, ctx: &egui::Context) {
         panel_runtime::tick_app(self);
+        wood_loader::tick(self, ctx);
         // Sleep/wake often skips frames without a device-lost signal; refresh egui GPU textures
         // when the frame clock jumps so the chrome is not stuck blank (#8749).
         let frame_time = ctx.input(|i| i.time);
@@ -3157,6 +3163,7 @@ impl SolveApp {
         // Before the dialog: a click on the view's OK or Cancel is for this frame's dialog.
         view_confirm::show(self, ui.ctx());
         dialogs::show(self, ui.ctx());
+        wood_loader::show_dialogs(self, ui.ctx());
         issue_report::CadInput::block(self, ui, report_input);
         sketch_palette::show(self, ui.ctx());
         self.resolve_fit(ui.ctx());

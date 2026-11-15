@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "apps/*", "xtask"]
+members = ["crates/*", "crates/wood", "apps/*", "xtask"]
 # Third-party code kept with local fixes (see vendor/README.md); not linted as ours.
 exclude = ["vendor"]
 
@@ -31,6 +31,8 @@ solidcraft-space-mouse = { path = "crates/space-mouse" }
 solidcraft-mcp = { path = "crates/mcp" }
 solidcraft-derive = { path = "crates/derive" }
 solidcraft-3dx-client = { path = "crates/threedx-client" }
+wood = { path = "crates/wood" }
+libloading = "0.8"
 # The Rust port of NVIDIA's SMLib (Apache-2.0), the B-rep kernel behind crates/smlib. Pinned;
 # move the rev on its own commit. For a
 # local checkout, add `[patch."https://github.com/tangency-labs/solidcore"] solidcore = { path =
