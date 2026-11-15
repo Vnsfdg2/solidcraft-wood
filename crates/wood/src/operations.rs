@@ -2111,10 +2111,13 @@ pub fn bind_single_panel_joint(panel_name: &str, host: &mut dyn WoodHost) -> Res
     let list_val = host.execute("component.list", json!({})).unwrap_or(Value::Null);
     let comps = list_val.get("components").and_then(Value::as_array).cloned().unwrap_or_default();
 
-    // Jeśli bryła już znajduje się w dedykowanym komponencie szuflady (*_Szuflada_*), nie przenoś jej do osobnego komponentu _K
+    // Jeśli bryła już znajduje się w dedykowanym komponencie szuflady (*_Drawer_* / *_Szuflada_*), nie przenoś jej do osobnego komponentu _K
     let already_in_drawer_comp = comps.iter().any(|c| {
         let cname = c.get("name").and_then(Value::as_str).unwrap_or("");
-        let is_drawer = cname.contains("_Szuflada_") || cname.starts_with("Szuflada_");
+        let is_drawer = cname.contains("_Drawer_")
+            || cname.starts_with("Drawer_")
+            || cname.contains("_Szuflada_")
+            || cname.starts_with("Szuflada_");
         is_drawer
             && c.get("bodies")
                 .and_then(Value::as_array)
@@ -2617,7 +2620,10 @@ pub fn scan_adapt_candidates(state: &mut WoodState, host: &mut dyn WoodHost) -> 
             || cname.is_empty()
             || cname.eq_ignore_ascii_case("root")
             || cname == "Kubatura";
-        let is_drawer_comp = cname.contains("_Szuflada_") || cname.starts_with("Szuflada_");
+        let is_drawer_comp = cname.contains("_Drawer_")
+            || cname.starts_with("Drawer_")
+            || cname.contains("_Szuflada_")
+            || cname.starts_with("Szuflada_");
         let is_child_of_kub = !is_root_or_kub
             && ((kub_id.is_some() && parent_id == kub_id)
                 || parent_str == "Kubatura"
@@ -2672,7 +2678,10 @@ pub fn scan_adapt_candidates(state: &mut WoodState, host: &mut dyn WoodHost) -> 
                         Some("Bryła luzem poza komponentem formatki".to_string()),
                     )
                 } else if *total_in_comp > 1
-                    && !(cname.contains("_Szuflada_") || cname.starts_with("Szuflada_"))
+                    && !(cname.contains("_Drawer_")
+                        || cname.starts_with("Drawer_")
+                        || cname.contains("_Szuflada_")
+                        || cname.starts_with("Szuflada_"))
                     && (*idx_in_comp > 0 || parsed.is_duplicate_copy)
                 {
                     (
@@ -5090,47 +5099,47 @@ pub fn compute_drawer_plan(
         _ => "XY",
     };
 
-    // 2. Wymiary i położenie formatek: DNO (A) oraz PLECY (B)
+    // 2. Wymiary i położenie formatek: Bottom (A) oraz Back (B)
     let board_t = system.board_thickness_mm;
-    let dno_w = round1(lw_mm - system.bottom_width_deduction_mm);
-    let dno_d = round1(nl_mm - system.bottom_depth_deduction_mm);
-    let plecy_w = round1(lw_mm - system.back_width_deduction_mm);
-    let plecy_h = round1(height_var.back_height_mm);
+    let bottom_w = round1(lw_mm - system.bottom_width_deduction_mm);
+    let bottom_d = round1(nl_mm - system.bottom_depth_deduction_mm);
+    let back_w = round1(lw_mm - system.back_width_deduction_mm);
+    let back_h = round1(height_var.back_height_mm);
 
-    if dno_w <= 10.0 || dno_d <= 10.0 || plecy_w <= 10.0 || plecy_h <= 10.0 {
+    if bottom_w <= 10.0 || bottom_d <= 10.0 || back_w <= 10.0 || back_h <= 10.0 {
         return Err("Wyliczone wymiary formatek dna lub pleców są nieprawidłowe (<= 10 mm).".into());
     }
 
     let w_center = 0.5 * (w_min + w_max);
     // Dno zaczyna się 12 mm za płaszczyzną frontową szuflady i kończy na 12 + (NL - 24) = NL - 12 mm
-    let dno_front_coord = effective_front_ref + u_depth_in * 12.0;
-    let dno_back_coord = dno_front_coord + u_depth_in * dno_d;
-    let dno_z0 = z_base + u_up * system.bottom_panel_z_from_bottom_mm;
-    let dno_z1 = dno_z0 + u_up * board_t;
+    let bottom_front_coord = effective_front_ref + u_depth_in * 12.0;
+    let bottom_back_coord = bottom_front_coord + u_depth_in * bottom_d;
+    let bottom_z0 = z_base + u_up * system.bottom_panel_z_from_bottom_mm;
+    let bottom_z1 = bottom_z0 + u_up * board_t;
 
     let mut bottom_panel_min = [0.0; 3];
     let mut bottom_panel_max = [0.0; 3];
-    bottom_panel_min[width_axis] = round3(w_center - 0.5 * dno_w);
-    bottom_panel_max[width_axis] = round3(w_center + 0.5 * dno_w);
-    bottom_panel_min[depth_axis] = round3(dno_front_coord.min(dno_back_coord));
-    bottom_panel_max[depth_axis] = round3(dno_front_coord.max(dno_back_coord));
-    bottom_panel_min[height_axis] = round3(dno_z0.min(dno_z1));
-    bottom_panel_max[height_axis] = round3(dno_z0.max(dno_z1));
+    bottom_panel_min[width_axis] = round3(w_center - 0.5 * bottom_w);
+    bottom_panel_max[width_axis] = round3(w_center + 0.5 * bottom_w);
+    bottom_panel_min[depth_axis] = round3(bottom_front_coord.min(bottom_back_coord));
+    bottom_panel_max[depth_axis] = round3(bottom_front_coord.max(bottom_back_coord));
+    bottom_panel_min[height_axis] = round3(bottom_z0.min(bottom_z1));
+    bottom_panel_max[height_axis] = round3(bottom_z0.max(bottom_z1));
 
-    // Plecy stoją na dnie (od dno_z1 do dno_z1 + plecy_h) i licują z tylną krawędzią dna (dno_back_coord)
-    let plecy_front_coord = dno_back_coord - u_depth_in * board_t;
-    let plecy_back_coord = dno_back_coord;
-    let plecy_z0 = dno_z1;
-    let plecy_z1 = plecy_z0 + u_up * plecy_h;
+    // Plecy stoją na dnie (od bottom_z1 do bottom_z1 + back_h) i licują z tylną krawędzią dna (bottom_back_coord)
+    let back_front_coord = bottom_back_coord - u_depth_in * board_t;
+    let back_back_coord = bottom_back_coord;
+    let back_z0 = bottom_z1;
+    let back_z1 = back_z0 + u_up * back_h;
 
     let mut back_panel_min = [0.0; 3];
     let mut back_panel_max = [0.0; 3];
-    back_panel_min[width_axis] = round3(w_center - 0.5 * plecy_w);
-    back_panel_max[width_axis] = round3(w_center + 0.5 * plecy_w);
-    back_panel_min[depth_axis] = round3(plecy_front_coord.min(plecy_back_coord));
-    back_panel_max[depth_axis] = round3(plecy_front_coord.max(plecy_back_coord));
-    back_panel_min[height_axis] = round3(plecy_z0.min(plecy_z1));
-    back_panel_max[height_axis] = round3(plecy_z0.max(plecy_z1));
+    back_panel_min[width_axis] = round3(w_center - 0.5 * back_w);
+    back_panel_max[width_axis] = round3(w_center + 0.5 * back_w);
+    back_panel_min[depth_axis] = round3(back_front_coord.min(back_back_coord));
+    back_panel_max[depth_axis] = round3(back_front_coord.max(back_back_coord));
+    back_panel_min[height_axis] = round3(back_z0.min(back_z1));
+    back_panel_max[height_axis] = round3(back_z0.max(back_z1));
 
     let hole_dia = system.screw_hole_diameter_mm;
     let hole_depth = system.screw_hole_depth_mm;
@@ -5154,7 +5163,7 @@ pub fn compute_drawer_plan(
             diameter: hole_dia,
             depth: hole_depth,
             target_body: side1_box.name.clone(),
-            label: if idx == 0 { "Prowadnica L".to_string() } else { String::new() },
+            label: if idx == 0 { "Slide L".to_string() } else { String::new() },
         });
 
         let mut p2 = [0.0; 3];
@@ -5167,7 +5176,7 @@ pub fn compute_drawer_plan(
             diameter: hole_dia,
             depth: hole_depth,
             target_body: side2_box.name.clone(),
-            label: if idx == 0 { "Prowadnica P".to_string() } else { String::new() },
+            label: if idx == 0 { "Slide R".to_string() } else { String::new() },
         });
     }
 
@@ -5199,19 +5208,19 @@ pub fn compute_drawer_plan(
         }
     }
 
-    // 5. Otwory w ściance tylnej (Plecy: 9 mm od bocznych krawędzi pleców, liczone od górnej krawędzi pleców w dół)
+    // 5. Otwory w ściance tylnej (Back: 9 mm od bocznych krawędzi pleców, liczone od górnej krawędzi pleców w dół)
     let mut back_holes = Vec::new();
-    let back_w_left = round3((w_center - 0.5 * plecy_w) + system.back_hole_side_offset_mm);
-    let back_w_right = round3((w_center + 0.5 * plecy_w) - system.back_hole_side_offset_mm);
+    let back_w_left = round3((w_center - 0.5 * back_w) + system.back_hole_side_offset_mm);
+    let back_w_right = round3((w_center + 0.5 * back_w) - system.back_hole_side_offset_mm);
     let mut dir_into_back = [0.0; 3];
     dir_into_back[depth_axis] = -u_depth_in;
 
     for (idx, &top_off) in height_var.back_hole_top_offsets_mm.iter().enumerate() {
-        let z_coord = round3(plecy_z1 - u_up * top_off);
+        let z_coord = round3(back_z1 - u_up * top_off);
         for (col_idx, w_coord) in [back_w_left, back_w_right].into_iter().enumerate() {
             let mut pb = [0.0; 3];
             pb[width_axis] = w_coord;
-            pb[depth_axis] = round3(plecy_back_coord);
+            pb[depth_axis] = round3(back_back_coord);
             pb[height_axis] = z_coord;
             back_holes.push(DrawerHoleDef {
                 position: pb,
@@ -5220,7 +5229,7 @@ pub fn compute_drawer_plan(
                 depth: hole_depth,
                 target_body: String::new(),
                 label: if idx == 0 && col_idx == 0 {
-                    "Plecy".to_string()
+                    "Back".to_string()
                 } else {
                     String::new()
                 },
@@ -5251,10 +5260,10 @@ pub fn compute_drawer_plan(
         height_axis,
         bottom_panel_min,
         bottom_panel_max,
-        bottom_panel_dims_mm: (dno_w, dno_d, board_t),
+        bottom_panel_dims_mm: (bottom_w, bottom_d, board_t),
         back_panel_min,
         back_panel_max,
-        back_panel_dims_mm: (plecy_w, plecy_h, board_t),
+        back_panel_dims_mm: (back_w, back_h, board_t),
         side1_holes,
         side2_holes,
         front_holes,
@@ -5346,29 +5355,34 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
         .filter(|c| {
             c.get("name")
                 .and_then(Value::as_str)
-                .is_some_and(|n| n.contains("_Szuflada_") || n.starts_with("Szuflada_"))
+                .is_some_and(|n| {
+                    n.contains("_Drawer_")
+                        || n.starts_with("Drawer_")
+                        || n.contains("_Szuflada_")
+                        || n.starts_with("Szuflada_")
+                })
         })
         .count() as u32;
     let drawer_idx = existing_drawers + 1;
     state.drawer_counter = drawer_idx + 1;
 
-    // 2. Przydziel numery formatek dla DNA i PLECÓW zgodnie z konwencją S05_30_...
-    let num_dno = allocate_panel_number(state, host);
-    let num_plecy = allocate_panel_number(state, host);
+    // 2. Przydziel numery formatek dla Bottom i Back zgodnie z konwencją S05_30_...
+    let num_bottom = allocate_panel_number(state, host);
+    let num_back = allocate_panel_number(state, host);
 
-    let dno_custom = format!(
-        "szuflada_{:02}_dno_{}_{:.0}_h{:.0}",
+    let bottom_custom = format!(
+        "drawer_{:02}_bottom_{}_{:.0}_h{:.0}",
         drawer_idx, system.short_code, plan.nl_mm, height_var.drawer_height_mm
     );
-    let plecy_custom = format!(
-        "szuflada_{:02}_plecy_{}_{:.0}_h{:.0}",
+    let back_custom = format!(
+        "drawer_{:02}_back_{}_{:.0}_h{:.0}",
         drawer_idx, system.short_code, plan.nl_mm, height_var.drawer_height_mm
     );
 
-    let dno_name = build_panel_name(&cab, num_dno, &dno_custom);
-    let plecy_name = build_panel_name(&cab, num_plecy, &plecy_custom);
+    let bottom_name = build_panel_name(&cab, num_bottom, &bottom_custom);
+    let back_name = build_panel_name(&cab, num_back, &back_custom);
     let drawer_comp_name = format!(
-        "{cab}_Szuflada_{:02}_{}_{:.0}_h{:.0}",
+        "{cab}_Drawer_{:02}_{}_{:.0}_h{:.0}",
         drawer_idx, system.short_code, plan.nl_mm, height_var.drawer_height_mm
     );
 
@@ -5381,52 +5395,52 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
     }
 
     // 3. Utwórz bryłę DNA szuflady (solid.box)
-    let dno_lx = round1(plan.bottom_panel_max[0] - plan.bottom_panel_min[0]);
-    let dno_ly = round1(plan.bottom_panel_max[1] - plan.bottom_panel_min[1]);
-    let dno_lz = round1(plan.bottom_panel_max[2] - plan.bottom_panel_min[2]);
+    let bottom_lx = round1(plan.bottom_panel_max[0] - plan.bottom_panel_min[0]);
+    let bottom_ly = round1(plan.bottom_panel_max[1] - plan.bottom_panel_min[1]);
+    let bottom_lz = round1(plan.bottom_panel_max[2] - plan.bottom_panel_min[2]);
     if let Err(e) = host.execute(
         "solid.box",
         json!({
-            "name": dno_name,
-            "body_name": dno_name,
+            "name": bottom_name,
+            "body_name": bottom_name,
             "corner": plan.bottom_panel_min,
-            "length": dno_lx,
-            "width": dno_ly,
-            "height": dno_lz,
+            "length": bottom_lx,
+            "width": bottom_ly,
+            "height": bottom_lz,
             "operation": "new",
         }),
     ) {
         if hid_kubatura_temp {
             let _ = host.execute("browser.visibility", json!({ "items": ["Kubatura"], "visible": true }));
         }
-        return Err(format!("Błąd tworzenia formatki dna szuflady '{dno_name}': {e}"));
+        return Err(format!("Błąd tworzenia formatki dna szuflady '{bottom_name}': {e}"));
     }
 
     // 4. Utwórz bryłę PLECÓW szuflady (solid.box)
-    let plecy_lx = round1(plan.back_panel_max[0] - plan.back_panel_min[0]);
-    let plecy_ly = round1(plan.back_panel_max[1] - plan.back_panel_min[1]);
-    let plecy_lz = round1(plan.back_panel_max[2] - plan.back_panel_min[2]);
+    let back_lx = round1(plan.back_panel_max[0] - plan.back_panel_min[0]);
+    let back_ly = round1(plan.back_panel_max[1] - plan.back_panel_min[1]);
+    let back_lz = round1(plan.back_panel_max[2] - plan.back_panel_min[2]);
     if let Err(e) = host.execute(
         "solid.box",
         json!({
-            "name": plecy_name,
-            "body_name": plecy_name,
+            "name": back_name,
+            "body_name": back_name,
             "corner": plan.back_panel_min,
-            "length": plecy_lx,
-            "width": plecy_ly,
-            "height": plecy_lz,
+            "length": back_lx,
+            "width": back_ly,
+            "height": back_lz,
             "operation": "new",
         }),
     ) {
         if hid_kubatura_temp {
             let _ = host.execute("browser.visibility", json!({ "items": ["Kubatura"], "visible": true }));
         }
-        return Err(format!("Błąd tworzenia formatki pleców szuflady '{plecy_name}': {e}"));
+        return Err(format!("Błąd tworzenia formatki pleców szuflady '{back_name}': {e}"));
     }
 
     // 5. Wierć płytkie otwory znaczące w lewym boku, prawym boku, froncie oraz w plecach szuflady
     for (i, h) in plan.side1_holes.iter().enumerate() {
-        let hole_name = format!("Otwor_prowadnica_L_{:02}_{:02}_{}", front_num, drawer_idx, i + 1);
+        let hole_name = format!("Hole_slide_L_{:02}_{:02}_{}", front_num, drawer_idx, i + 1);
         let _ = host.execute(
             "solid.hole",
             json!({
@@ -5441,7 +5455,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
     }
 
     for (i, h) in plan.side2_holes.iter().enumerate() {
-        let hole_name = format!("Otwor_prowadnica_P_{:02}_{:02}_{}", front_num, drawer_idx, i + 1);
+        let hole_name = format!("Hole_slide_R_{:02}_{:02}_{}", front_num, drawer_idx, i + 1);
         let _ = host.execute(
             "solid.hole",
             json!({
@@ -5456,7 +5470,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
     }
 
     for (i, h) in plan.front_holes.iter().enumerate() {
-        let hole_name = format!("Otwor_szuflada_front_{:02}_{:02}_{}", front_num, drawer_idx, i + 1);
+        let hole_name = format!("Hole_drawer_front_{:02}_{:02}_{}", front_num, drawer_idx, i + 1);
         let _ = host.execute(
             "solid.hole",
             json!({
@@ -5471,7 +5485,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
     }
 
     for (i, h) in plan.back_holes.iter().enumerate() {
-        let hole_name = format!("Otwor_szuflada_plecy_{:02}_{:02}_{}", num_plecy, drawer_idx, i + 1);
+        let hole_name = format!("Hole_drawer_back_{:02}_{:02}_{}", num_back, drawer_idx, i + 1);
         let _ = host.execute(
             "solid.hole",
             json!({
@@ -5480,12 +5494,12 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
                 "direction": h.direction,
                 "diameter": h.diameter,
                 "depth": h.depth,
-                "targets": [plecy_name],
+                "targets": [back_name],
             }),
         );
     }
 
-    // 6. Utwórz dedykowany komponent szuflady i przenieś do niego OBIE formatki (Dno + Plecy)
+    // 6. Utwórz dedykowany komponent szuflady i przenieś do niego OBIE formatki (Bottom + Back)
     let kub_exists = comps.iter().any(|c| {
         c.get("name")
             .and_then(Value::as_str)
@@ -5515,7 +5529,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
     let _ = host.execute(
         "component.move_bodies",
         json!({
-            "bodies": [dno_name, plecy_name],
+            "bodies": [bottom_name, back_name],
             "component": drawer_comp_name,
         }),
     );
@@ -5533,7 +5547,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
         json!({
             "component": drawer_comp_name,
             "values": {
-                "description": format!("Szuflada {} NL={:.0} H={:.0}", system.name, plan.nl_mm, height_var.drawer_height_mm),
+                "description": format!("Drawer {} NL={:.0} H={:.0}", system.name, plan.nl_mm, height_var.drawer_height_mm),
                 "part_number": drawer_comp_name,
             }
         }),
@@ -5547,11 +5561,11 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
         );
     }
 
-    if !state.created_panels.contains(&dno_name) {
-        state.created_panels.push(dno_name.clone());
+    if !state.created_panels.contains(&bottom_name) {
+        state.created_panels.push(bottom_name.clone());
     }
-    if !state.created_panels.contains(&plecy_name) {
-        state.created_panels.push(plecy_name.clone());
+    if !state.created_panels.contains(&back_name) {
+        state.created_panels.push(back_name.clone());
     }
     let _ = refresh_cutting_list(state, host);
 
@@ -5566,8 +5580,8 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
     Ok(format!(
         "Utworzono szufladę w komponencie '{}' (Dno: '{}', Plecy: '{}') oraz nawiercono otwory (boki: 2×{}, front: {}, plecy: {}).",
         drawer_comp_name,
-        dno_name,
-        plecy_name,
+        bottom_name,
+        back_name,
         plan.side1_holes.len(),
         plan.front_holes.len(),
         plan.back_holes.len(),
