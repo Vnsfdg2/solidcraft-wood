@@ -62,9 +62,9 @@ fn load_hardware_json<T: serde::de::DeserializeOwned>(file_name: &str) -> Result
             continue;
         }
         let text = std::fs::read_to_string(path)
-            .map_err(|e| format!("Nie można odczytać pliku '{}': {e}", path.display()))?;
+            .map_err(|e| format!("Cannot read file '{}': {e}", path.display()))?;
         return serde_json::from_str::<T>(&text)
-            .map_err(|e| format!("Plik '{}' ma nieprawidłowy format: {e}", path.display()));
+            .map_err(|e| format!("File '{}' has invalid format: {e}", path.display()));
     }
     let searched = candidates
         .iter()
@@ -131,7 +131,7 @@ impl ConnectorLibrary {
     pub fn load() -> Result<Self, String> {
         let lib: ConnectorLibrary = load_hardware_json("connectors.json")?;
         if lib.categories.is_empty() {
-            return Err("Plik 'connectors.json' nie zawiera żadnej kategorii złączy.".into());
+            return Err("File 'connectors.json' contains no connector categories.".into());
         }
         Ok(lib)
     }
@@ -169,9 +169,9 @@ pub struct HingeFrontSpec {
     pub screw_hole_depth_mm: f64,
 }
 
-/// Parametry prowadnika i otworów pod wkręty na boku mebla.
+/// Mounting plate and screw hole parameters on the cabinet side panel.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct HingeBokSpec {
+pub struct HingeSideSpec {
     #[serde(alias = "odleglosc_od_krawedzi_mm", alias = "edge_distance", alias = "distance_from_cabinet_edge_overlay_mm")]
     pub edge_distance_mm: f64,
     #[serde(alias = "rozstaw_otworow_mm", alias = "rozstaw_wkretow_mm", alias = "spacing_z", alias = "vertical_spacing_Z_mm")]
@@ -188,7 +188,8 @@ pub struct HingeStandard {
     pub id: String,
     pub name: String,
     pub front: HingeFrontSpec,
-    pub bok: HingeBokSpec,
+    #[serde(alias = "bok")]
+    pub side: HingeSideSpec,
 }
 
 /// Library of concealed cup hinges (rozstawy zawiasów puszkowych).
@@ -204,7 +205,7 @@ impl HingeLibrary {
     pub fn load() -> Result<Self, String> {
         let lib: HingeLibrary = load_hardware_json("hinges.json")?;
         if lib.standards.is_empty() {
-            return Err("Plik 'hinges.json' nie zawiera żadnego standardu zawiasu.".into());
+            return Err("File 'hinges.json' contains no hinge standards.".into());
         }
         Ok(lib)
     }
@@ -245,7 +246,7 @@ impl EdgebandLibrary {
     pub fn load() -> Result<Self, String> {
         let lib: EdgebandLibrary = load_hardware_json("edgebanding.json")?;
         if lib.presets.is_empty() {
-            return Err("Plik 'edgebanding.json' nie zawiera żadnego obrzeża.".into());
+            return Err("File 'edgebanding.json' contains no edgeband presets.".into());
         }
         Ok(lib)
     }
@@ -287,7 +288,7 @@ impl DecorLibrary {
     pub fn load() -> Result<Self, String> {
         let lib: DecorLibrary = load_hardware_json("decors.json")?;
         if lib.presets.is_empty() {
-            return Err("Plik 'decors.json' nie zawiera żadnego dekoru.".into());
+            return Err("File 'decors.json' contains no decor presets.".into());
         }
         Ok(lib)
     }
@@ -361,7 +362,7 @@ impl DecorLibrary {
     /// Saves updated library back to the existing `decors.json` location(s).
     pub fn save(&self) -> Result<std::path::PathBuf, String> {
         let json_text = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Błąd serializacji 'decors.json': {e}"))?;
+            .map_err(|e| format!("Failed to serialize 'decors.json': {e}"))?;
         let mut seen = std::collections::BTreeSet::new();
         let mut first_written: Option<std::path::PathBuf> = None;
         for path in hardware_candidates("decors.json") {
@@ -373,7 +374,7 @@ impl DecorLibrary {
                 continue;
             }
             std::fs::write(&abs, &json_text)
-                .map_err(|e| format!("Nie można zapisać '{}': {e}", abs.display()))?;
+                .map_err(|e| format!("Cannot write '{}': {e}", abs.display()))?;
             if first_written.is_none() {
                 first_written = Some(abs);
             }
@@ -383,7 +384,7 @@ impl DecorLibrary {
         }
         let fallback = std::path::PathBuf::from("decors.json");
         std::fs::write(&fallback, &json_text)
-            .map_err(|e| format!("Nie można zapisać '{}': {e}", fallback.display()))?;
+            .map_err(|e| format!("Cannot write '{}': {e}", fallback.display()))?;
         Ok(fallback)
     }
 }
@@ -433,7 +434,7 @@ impl CncJointLibrary {
     pub fn load() -> Result<Self, String> {
         let lib: CncJointLibrary = load_hardware_json("cnc_joints.json")?;
         if lib.presets.is_empty() {
-            return Err("Plik 'cnc_joints.json' nie zawiera żadnego presetu połączenia.".into());
+            return Err("File 'cnc_joints.json' contains no joint presets.".into());
         }
         Ok(lib)
     }
@@ -539,7 +540,7 @@ impl DrawerLibrary {
     pub fn load() -> Result<Self, String> {
         let lib: DrawerLibrary = load_hardware_json("drawers.json")?;
         if lib.systems.is_empty() {
-            return Err("Plik 'drawers.json' nie zawiera żadnego systemu szuflad.".into());
+            return Err("File 'drawers.json' contains no drawer systems.".into());
         }
         Ok(lib)
     }
@@ -589,14 +590,14 @@ impl EdgebandAutoRule {
 
     pub fn label(self) -> &'static str {
         match self {
-            EdgebandAutoRule::ExposedOnly => "Tylko odsłonięte brzegi",
-            EdgebandAutoRule::FrontOnly => "Tylko przedni brzeg",
-            EdgebandAutoRule::TopOnly => "Tylko górny brzeg (+Z)",
-            EdgebandAutoRule::BottomOnly => "Tylko dolny brzeg (-Z)",
-            EdgebandAutoRule::FourSides => "4 strony (2D2K)",
-            EdgebandAutoRule::LongOnly => "Dwa równoległe: Tylko długie (2D0K)",
-            EdgebandAutoRule::ShortOnly => "Dwa równoległe: Tylko krótkie (0D2K)",
-            EdgebandAutoRule::CornerPair => "Narożne wg klikniętego rogu (1D1K)",
+            EdgebandAutoRule::ExposedOnly => "Exposed edges only",
+            EdgebandAutoRule::FrontOnly => "Front edge only",
+            EdgebandAutoRule::TopOnly => "Top edge only (+Z)",
+            EdgebandAutoRule::BottomOnly => "Bottom edge only (-Z)",
+            EdgebandAutoRule::FourSides => "All 4 sides (2L2W)",
+            EdgebandAutoRule::LongOnly => "Two parallel: Long edges only (2L0W)",
+            EdgebandAutoRule::ShortOnly => "Two parallel: Short edges only (0L2W)",
+            EdgebandAutoRule::CornerPair => "Corner pair by clicked corner (1L1W)",
         }
     }
 }
@@ -1077,7 +1078,7 @@ impl Default for WoodState {
             connector_last_edge_pick: None,
             connector_last_face_pick: None,
             connector_active_slot: 0,
-            connector_category_id: "kolki".into(),
+            connector_category_id: "dowels".into(),
             connector_preset_id: "dowel_8x35".into(),
             connector_through_face: false,
             connector_offset_x: "50".into(),

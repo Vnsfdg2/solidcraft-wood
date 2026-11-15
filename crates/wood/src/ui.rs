@@ -247,37 +247,37 @@ pub fn draw_ribbon(ui: &mut Ui, rect: Rect, state: &mut WoodState, host: &mut dy
     let painter = ui.painter().clone();
     let sections: &[(&str, &[(RibbonTool, &str)])] = &[
         (
-            "Gabaryt",
+            "Envelope",
             &[
-                (RibbonTool::Kubatura, "Kubatura"),
-                (RibbonTool::ToggleKubatura, "Pokaż/Ukryj"),
+                (RibbonTool::Kubatura, "Envelope"),
+                (RibbonTool::ToggleKubatura, "Show/Hide"),
             ],
         ),
         (
-            "Formatki",
+            "Panels",
             &[
-                (RibbonTool::AutoPanel, "Quick Formatka"),
-                (RibbonTool::FreePanel, "FORMATKA"),
-                (RibbonTool::AdaptBodies, "Adaptuj Bryły"),
-                (RibbonTool::Edgebanding, "Obrzeża"),
-                (RibbonTool::DecorGrain, "Dekor / Słoje"),
+                (RibbonTool::AutoPanel, "Quick Panel"),
+                (RibbonTool::FreePanel, "PANEL 1-2-3"),
+                (RibbonTool::AdaptBodies, "Adapt Bodies"),
+                (RibbonTool::Edgebanding, "Edgebanding"),
+                (RibbonTool::DecorGrain, "Decor / Grain"),
             ],
         ),
         (
-            "Złożenie",
+            "Assembly",
             &[
-                (RibbonTool::Connectors, "Złącza"),
+                (RibbonTool::Connectors, "Connectors"),
                 (RibbonTool::TDogbone, "T-Dogbone"),
-                (RibbonTool::Hinges, "Zawiasy"),
+                (RibbonTool::Hinges, "Hinges"),
                 (RibbonTool::Drawer, "DRAWER"),
-                (RibbonTool::Joints, "Połącz Jointami"),
+                (RibbonTool::Joints, "Bind Joints"),
             ],
         ),
         (
-            "Zestawienie",
+            "Schedule",
             &[
-                (RibbonTool::CuttingList, "Tabela Rozkroju"),
-                (RibbonTool::Parameters, "Parametry fx"),
+                (RibbonTool::CuttingList, "Cutting List"),
+                (RibbonTool::Parameters, "Parameters fx"),
             ],
         ),
     ];
@@ -377,7 +377,7 @@ pub fn draw_ribbon(ui: &mut Ui, rect: Rect, state: &mut WoodState, host: &mut dy
             FontId::proportional(10.5),
             COL_LABEL,
         );
-        if badge_resp.on_hover_text("Przeładuj dynamicznie bibliotekę target/debug/wood.dll (Skrót: F5)").clicked() {
+        if badge_resp.on_hover_text("Hot-reload target/debug/wood.dll (Shortcut: F5)").clicked() {
             state.reload_requested = true;
         }
     }
@@ -818,17 +818,17 @@ fn paint_tool_icon(painter: &egui::Painter, tool: RibbonTool, c: Pos2) {
 /// Returns the title and icon name for the currently active Wood feature dialog.
 pub fn active_dialog_meta(dialog: ActiveDialog) -> (&'static str, &'static str) {
     match dialog {
-        ActiveDialog::Kubatura => ("Kubatura (Gabaryt)", "box"),
-        ActiveDialog::AutoPanel => ("Quick Formatka", "extrude"),
-        ActiveDialog::FreePanel => ("FORMATKA", "plane"),
-        ActiveDialog::AdaptBodies => ("Adaptuj Bryły", "component"),
-        ActiveDialog::Edgebanding => ("Obrzeża (Oklejanie)", "appearance"),
-        ActiveDialog::DecorGrain => ("Dekor i Usłojenie", "appearance"),
-        ActiveDialog::Connectors => ("Złącza (Kołki / Wkręty)", "hole"),
-        ActiveDialog::TDogbone => ("Połączenie T-Dogbone (CNC)", "combine"),
-        ActiveDialog::Hinges => ("Zawiasy Puszkowe", "hole"),
-        ActiveDialog::Drawer => ("DRAWER (Systemy Szuflad)", "box"),
-        ActiveDialog::Joints => ("Złożenie i Jointy", "joint"),
+        ActiveDialog::Kubatura => ("Cabinet Envelope", "box"),
+        ActiveDialog::AutoPanel => ("Quick Panel", "extrude"),
+        ActiveDialog::FreePanel => ("PANEL 1-2-3", "plane"),
+        ActiveDialog::AdaptBodies => ("Adapt Bodies", "component"),
+        ActiveDialog::Edgebanding => ("Edgebanding", "appearance"),
+        ActiveDialog::DecorGrain => ("Decor & Grain", "appearance"),
+        ActiveDialog::Connectors => ("Connectors (Dowels / Screws)", "hole"),
+        ActiveDialog::TDogbone => ("T-Dogbone Joint (CNC)", "combine"),
+        ActiveDialog::Hinges => ("Cup Hinges", "hole"),
+        ActiveDialog::Drawer => ("DRAWER (Drawer Systems)", "box"),
+        ActiveDialog::Joints => ("Assembly & Joints", "joint"),
     }
 }
 
@@ -850,11 +850,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 .min_col_width(135.0)
                 .striped(false)
                 .show(ui, |ui| {
-                    form_entry_row(ui, "Szerokość (X)", &mut state.szerokosc, "mm");
-                    form_entry_row(ui, "Głębokość (Y)", &mut state.glebokosc, "mm");
-                    form_entry_row(ui, "Wysokość (Z)", &mut state.wysokosc, "mm");
-                    form_entry_row(ui, "Grubość płyty", &mut state.grubosc, "mm");
-                    form_entry_row(ui, "Przezroczystość", &mut state.kubatura_opacity, "0.0 - 1.0");
+                    form_entry_row(ui, "Width (X)", &mut state.szerokosc, "mm");
+                    form_entry_row(ui, "Depth (Y)", &mut state.glebokosc, "mm");
+                    form_entry_row(ui, "Height (Z)", &mut state.wysokosc, "mm");
+                    form_entry_row(ui, "Board Thickness", &mut state.grubosc, "mm");
+                    form_entry_row(ui, "Opacity", &mut state.kubatura_opacity, "0.0 - 1.0");
                 });
 
             ui.add_space(8.0);
@@ -862,11 +862,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
-                if ui.button("Aktualizuj wymiary").on_hover_text("Przelicza parametry mebla bez usuwania/tworzenia bryły").clicked() {
+                if ui.button("Update Dimensions").on_hover_text("Recalculate cabinet dimensions without deleting or recreating the body").clicked() {
                     let _ = run_and_report(state, host, update_kubatura);
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(RichText::new("OK").strong()).on_hover_text("Tworzy bryłę Kubatury i zamyka okno").clicked() {
+                    if ui.button(RichText::new("OK").strong()).on_hover_text("Create the bounding box body and close the dialog").clicked() {
                         if run_and_report(state, host, create_kubatura) {
                             close_requested = true;
                         }
@@ -890,9 +890,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             }
 
             let eye_lbl = if state.kubatura_hidden {
-                "👁 Pokaż Kubaturę"
+                "👁 Show Bounding Box"
             } else {
-                "👁 Ukryj Kubaturę"
+                "👁 Hide Bounding Box"
             };
             let eye_col = if state.kubatura_hidden { COL_GOLD } else { COL_BLUE };
             if ui
@@ -908,13 +908,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             let pick1_text = match &state.auto_face_pick {
                 Some(p) => format!("{} [f{}]", p.body, p.index),
-                None => "Select (1. ściana w 3D)".to_string(),
+                None => "Select (1st face in 3D)".to_string(),
             };
             let has_pick1 = state.auto_face_pick.is_some();
 
             let pick2_text = match &state.auto_face_pick_2 {
                 Some(p) => format!("{} [f{}]", p.body, p.index),
-                None => "Select (opcja: 2. ściana)".to_string(),
+                None => "Select (optional: 2nd face)".to_string(),
             };
             let has_pick2 = state.auto_face_pick_2.is_some();
 
@@ -936,7 +936,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     // 1. Ściana bazowa (obowiązkowa)
                     let slot0_active = state.auto_active_slot == 0;
                     ui.add(
-                        egui::Label::new(RichText::new("1. Ściana bazowa").color(COL_LABEL))
+                        egui::Label::new(RichText::new("1. Base face").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     ui.horizontal(|ui| {
@@ -969,7 +969,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     // 2. Druga ściana (opcjonalna — wstawia formatkę/półki w świetle między dwiema ścianami)
                     let slot1_active = state.auto_active_slot == 1 && has_pick1;
                     ui.add(
-                        egui::Label::new(RichText::new("2. Druga ściana").color(COL_LABEL))
+                        egui::Label::new(RichText::new("2. Second face").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     ui.horizontal(|ui| {
@@ -986,7 +986,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         }
                         if ui
                             .button(txt)
-                            .on_hover_text("Opcjonalnie wskaż drugą równoległą ścianę, aby wstawić formatkę (lub półki) pomiędzy nimi")
+                            .on_hover_text("Optionally pick a second parallel face to place a panel (or shelves) between them")
                             .clicked()
                         {
                             state.auto_active_slot = 1;
@@ -1003,12 +1003,12 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     });
                     ui.end_row();
 
-                    form_entry_row(ui, "Nazwa formatki", &mut state.auto_name, "");
+                    form_entry_row(ui, "Panel Name", &mut state.auto_name, "");
 
-                    // Liczba podziału (pojawia się tylko gdy wskazano dwie powierzchnie)
+                    // Division count (shown only when two faces are picked)
                     if has_pick2 {
                         ui.add(
-                            egui::Label::new(RichText::new("Liczba podziału").color(COL_LABEL))
+                            egui::Label::new(RichText::new("Division Count").color(COL_LABEL))
                                 .wrap_mode(egui::TextWrapMode::Extend),
                         );
                         ui.horizontal(|ui| {
@@ -1043,19 +1043,19 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                 }
                                 inputs_changed = true;
                             }
-                            ui.label(RichText::new("szt").small().color(COL_MUTED));
+                            ui.label(RichText::new("pcs").small().color(COL_MUTED));
                         });
                         ui.end_row();
                     }
 
                     ui.add(
-                        egui::Label::new(RichText::new("Kierunek").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Direction").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     let dir_label = match state.auto_direction {
-                        AutoPanelDirection::Inside => "Wewnątrz",
-                        AutoPanelDirection::Outside => "Zewnątrz",
-                        AutoPanelDirection::Center => "Środek",
+                        AutoPanelDirection::Inside => "Inside",
+                        AutoPanelDirection::Outside => "Outside",
+                        AutoPanelDirection::Center => "Center",
                     };
                     ui.add_enabled_ui(!direction_locked, |ui| {
                         egui::ComboBox::from_id_salt("wood_auto_dir")
@@ -1066,21 +1066,21 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                     .selectable_value(
                                         &mut state.auto_direction,
                                         AutoPanelDirection::Inside,
-                                        "Wewnątrz",
+                                        "Inside",
                                     )
                                     .changed()
                                     || ui
                                         .selectable_value(
                                             &mut state.auto_direction,
                                             AutoPanelDirection::Outside,
-                                            "Zewnątrz",
+                                            "Outside",
                                         )
                                         .changed()
                                     || ui
                                         .selectable_value(
                                             &mut state.auto_direction,
                                             AutoPanelDirection::Center,
-                                            "Środek",
+                                            "Center",
                                         )
                                         .changed()
                                 {
@@ -1092,7 +1092,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     });
                     ui.end_row();
 
-                    if form_entry_row(ui, "Grubość płyty", &mut state.auto_thickness, "mm") {
+                    if form_entry_row(ui, "Board Thickness", &mut state.auto_thickness, "mm") {
                         inputs_changed = true;
                     }
                 });
@@ -1113,11 +1113,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             }
 
             ui.add_space(4.0);
-            egui::CollapsingHeader::new(RichText::new("OPCJE ODSUNIĘCIA / MARGINESY").small().strong().color(COL_LABEL))
+            egui::CollapsingHeader::new(RichText::new("OFFSET / MARGINS").small().strong().color(COL_LABEL))
                 .default_open(false)
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        let link_lbl = if state.auto_margins_linked { "🔗 Marginesy: 1 wspólny" } else { "🔓 Marginesy: 4 strony" };
+                        let link_lbl = if state.auto_margins_linked { "🔗 Margins: 1 shared" } else { "🔓 Margins: 4 sides" };
                         if ui.button(RichText::new(link_lbl).small().color(COL_BLUE)).clicked() {
                             state.auto_margins_linked = !state.auto_margins_linked;
                             if state.auto_margins_linked {
@@ -1149,11 +1149,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                 ui.end_row();
                             };
 
-                            row_entry("Odsunięcie ściany", &mut state.auto_plane_offset, "mm");
+                            row_entry("Face Offset", &mut state.auto_plane_offset, "mm");
 
                             if state.auto_margins_linked {
                                 let mut common = state.auto_margins[0].clone();
-                                ui.add(egui::Label::new(RichText::new("Margines (4 strony)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                                ui.add(egui::Label::new(RichText::new("Margin (4 sides)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                                 ui.horizontal(|ui| {
                                     if ui.add(egui::TextEdit::singleline(&mut common).desired_width(100.0)).changed() {
                                         state.auto_margins[0] = common.clone();
@@ -1166,10 +1166,10 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                 });
                                 ui.end_row();
                             } else {
-                                row_entry("Margines Bok A", &mut state.auto_margins[0], "mm");
-                                row_entry("Margines Bok B", &mut state.auto_margins[1], "mm");
-                                row_entry("Margines Przód", &mut state.auto_margins[2], "mm");
-                                row_entry("Margines Tył", &mut state.auto_margins[3], "mm");
+                                row_entry("Margin Side A", &mut state.auto_margins[0], "mm");
+                                row_entry("Margin Side B", &mut state.auto_margins[1], "mm");
+                                row_entry("Margin Front", &mut state.auto_margins[2], "mm");
+                                row_entry("Margin Back", &mut state.auto_margins[3], "mm");
                             }
                         });
                 });
@@ -1183,7 +1183,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
-                if ui.button("Wyczyść").on_hover_text("Czyści wybrane ściany").clicked() {
+                if ui.button("Clear").on_hover_text("Clears selected faces").clicked() {
                     state.auto_face_pick = None;
                     state.auto_face_pick_2 = None;
                     state.auto_active_slot = 0;
@@ -1195,13 +1195,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     host.enable_face_selection();
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(RichText::new("Zatwierdź").color(COL_GREEN).strong())
-                        .on_hover_text("Tworzy formatkę (lub zestaw półek/przegród) i pozostawia okno otwarte na kolejną")
+                    if ui.button(RichText::new("Apply").color(COL_GREEN).strong())
+                        .on_hover_text("Creates the panel (or set of shelves/dividers) and keeps the dialog open")
                         .clicked()
                     {
                         let _ = run_and_report(state, host, create_auto_panel);
                     }
-                    if ui.button("Zamknij").clicked() {
+                    if ui.button("Close").clicked() {
                         close_requested = true;
                     }
                 });
@@ -1220,21 +1220,20 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             let mut request_face_sel = false;
 
             let is_two_faces = state.free_mode == FreePanelMode::TwoFaces;
-            let txt0 = format_picks(&state.free_picks[0], 2, "Select (2 boki w 3D)");
+            let txt0 = format_picks(&state.free_picks[0], 2, "Select (2 sides in 3D)");
             let need1 = if is_two_faces { 2 } else { 1 };
             let txt1 = format_picks(
                 &state.free_picks[1],
                 need1,
                 if is_two_faces {
-                    "Select (2 ściany w 3D)"
+                    "Select (2 faces in 3D)"
                 } else {
-                    "Select (1 ściana w 3D)"
+                    "Select (1 face in 3D)"
                 },
             );
-            let txt2 = format_picks(&state.free_picks[2], 1, "Select (1 ściana w 3D)");
+            let txt2 = format_picks(&state.free_picks[2], 1, "Select (1 face in 3D)");
 
-            // Przycisk Ukryj/Pokaż Kubaturę rozciągnięty na całą szerokość o stałym rozmiarze
-            let eye_lbl = if state.kubatura_hidden { "👁 Pokaż Kubaturę" } else { "👁 Ukryj Kubaturę" };
+            let eye_lbl = if state.kubatura_hidden { "👁 Show Bounding Box" } else { "👁 Hide Bounding Box" };
             let eye_col = if state.kubatura_hidden { COL_GOLD } else { COL_BLUE };
             if ui.add_sized([ui.available_width(), 24.0], egui::Button::new(RichText::new(eye_lbl).color(eye_col))).clicked() {
                 let _ = toggle_kubatura_visibility(state, host);
@@ -1247,13 +1246,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 .spacing([8.0, 6.0])
                 .min_col_width(75.0)
                 .show(ui, |ui| {
-                    form_entry_row(ui, "Nazwa formatki", &mut state.free_name, "");
+                    form_entry_row(ui, "Panel Name", &mut state.free_name, "");
 
                     let slot0_active = state.active_pick_slot == 0;
                     let slot0_has = !state.free_picks[0].is_empty();
                     let (p0, c0) = select_slot_row(
                         ui,
-                        "1. Dwa boki",
+                        "1. Two sides",
                         &txt0,
                         slot0_active,
                         slot0_has,
@@ -1267,22 +1266,22 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         request_face_sel = true;
                     }
 
-                    ui.add(egui::Label::new(RichText::new("Tryb Kroku 2").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Step 2 Mode").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     egui::ComboBox::from_id_salt("wood_free_mode")
                         .width(125.0)
                         .selected_text(match state.free_mode {
-                            FreePanelMode::TwoFaces => "Dwa boki (Przód i Tył)",
-                            FreePanelMode::OneFaceAndWidth => "1 bok + wymiar (Trawers)",
+                            FreePanelMode::TwoFaces => "Two faces (Front & Back)",
+                            FreePanelMode::OneFaceAndWidth => "1 face + width (Rail)",
                         })
                         .show_ui(ui, |ui| {
-                            if ui.selectable_value(&mut state.free_mode, FreePanelMode::TwoFaces, "Dwa boki (Przód i Tył)").changed() {
+                            if ui.selectable_value(&mut state.free_mode, FreePanelMode::TwoFaces, "Two faces (Front & Back)").changed() {
                                 state.free_picks[1].clear();
                                 inputs_changed = true;
                             }
                             if ui.selectable_value(
                                 &mut state.free_mode,
                                 FreePanelMode::OneFaceAndWidth,
-                                "1 bok + wymiar (Trawers)",
+                                "1 face + width (Rail)",
                             ).changed() {
                                 state.free_picks[1].clear();
                                 inputs_changed = true;
@@ -1294,7 +1293,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     let slot1_has = !state.free_picks[1].is_empty();
                     let (p1, c1) = select_slot_row(
                         ui,
-                        "2. Przód / Tył",
+                        "2. Front / Back",
                         &txt1,
                         slot1_active,
                         slot1_has,
@@ -1312,7 +1311,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     }
 
                     if !is_two_faces {
-                        if form_entry_row(ui, "Szerokość od boku", &mut state.free_width, "mm") {
+                        if form_entry_row(ui, "Width from face", &mut state.free_width, "mm") {
                             inputs_changed = true;
                         }
                     }
@@ -1321,7 +1320,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     let slot2_has = !state.free_picks[2].is_empty();
                     let (p2, c2) = select_slot_row(
                         ui,
-                        "3. Przyklejenie",
+                        "3. Attach face",
                         &txt2,
                         slot2_active,
                         slot2_has,
@@ -1335,34 +1334,34 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         request_face_sel = true;
                     }
 
-                    ui.add(egui::Label::new(RichText::new("Kierunek").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Direction").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     egui::ComboBox::from_id_salt("wood_free_dir")
                         .width(125.0)
                         .selected_text(if state.free_inward {
-                            "Do wnętrza kubatury"
+                            "Inside bounding box"
                         } else {
-                            "Na zewnątrz"
+                            "Outside"
                         })
                         .show_ui(ui, |ui| {
-                            if ui.selectable_value(&mut state.free_inward, true, "Do wnętrza kubatury").changed()
-                                || ui.selectable_value(&mut state.free_inward, false, "Na zewnątrz").changed()
+                            if ui.selectable_value(&mut state.free_inward, true, "Inside bounding box").changed()
+                                || ui.selectable_value(&mut state.free_inward, false, "Outside").changed()
                             {
                                 inputs_changed = true;
                             }
                         });
                     ui.end_row();
 
-                    if form_entry_row(ui, "Grubość płyty", &mut state.free_thickness, "mm") {
+                    if form_entry_row(ui, "Board Thickness", &mut state.free_thickness, "mm") {
                         inputs_changed = true;
                     }
                 });
 
             ui.add_space(4.0);
-            egui::CollapsingHeader::new(RichText::new("OPCJE ODSUNIĘCIA / MARGINESY").small().strong().color(COL_LABEL))
+            egui::CollapsingHeader::new(RichText::new("OFFSET / MARGINS").small().strong().color(COL_LABEL))
                 .default_open(false)
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        let link_lbl = if state.free_margins_linked { "🔗 Marginesy: 1 wspólny" } else { "🔓 Marginesy: 4 strony" };
+                        let link_lbl = if state.free_margins_linked { "🔗 Margins: 1 shared" } else { "🔓 Margins: 4 sides" };
                         if ui.button(RichText::new(link_lbl).small().color(COL_BLUE)).clicked() {
                             state.free_margins_linked = !state.free_margins_linked;
                             if state.free_margins_linked {
@@ -1393,11 +1392,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                 });
                                 ui.end_row();
                             };
-                            row_entry("Odsunięcie (Krok 3)", &mut state.free_plane_offset, "mm");
+                            row_entry("Offset (Step 3)", &mut state.free_plane_offset, "mm");
 
                             if state.free_margins_linked {
                                 let mut common = state.free_margins[0].clone();
-                                ui.add(egui::Label::new(RichText::new("Margines (4 strony)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                                ui.add(egui::Label::new(RichText::new("Margin (4 sides)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                                 ui.horizontal(|ui| {
                                     if ui.add(egui::TextEdit::singleline(&mut common).desired_width(100.0)).changed() {
                                         state.free_margins[0] = common.clone();
@@ -1410,10 +1409,10 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                 });
                                 ui.end_row();
                             } else {
-                                row_entry("Margines Bok A (Krok 1)", &mut state.free_margins[0], "mm");
-                                row_entry("Margines Bok B (Krok 1)", &mut state.free_margins[1], "mm");
-                                row_entry("Margines Przód (Krok 2)", &mut state.free_margins[2], "mm");
-                                row_entry("Margines Tył (Krok 2)", &mut state.free_margins[3], "mm");
+                                row_entry("Margin Side A (Step 1)", &mut state.free_margins[0], "mm");
+                                row_entry("Margin Side B (Step 1)", &mut state.free_margins[1], "mm");
+                                row_entry("Margin Front (Step 2)", &mut state.free_margins[2], "mm");
+                                row_entry("Margin Back (Step 2)", &mut state.free_margins[3], "mm");
                             }
                         });
                 });
@@ -1426,20 +1425,20 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(8.0);
 
             ui.horizontal(|ui| {
-                if ui.button("Wyczyść").on_hover_text("Czyści wybrane ściany i zaczyna od Kroku 1").clicked() {
+                if ui.button("Clear").on_hover_text("Clears selected faces and restarts from Step 1").clicked() {
                     state.ghost_box = None;
                     state.free_picks = [Vec::new(), Vec::new(), Vec::new()];
                     state.active_pick_slot = 0;
                     host.enable_face_selection();
                 }
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(RichText::new("Zatwierdź").color(COL_GREEN).strong())
-                        .on_hover_text("Tworzy formatkę i pozostawia okno otwarte na kolejną")
+                    if ui.button(RichText::new("Apply").color(COL_GREEN).strong())
+                        .on_hover_text("Creates the panel and keeps the dialog open for the next one")
                         .clicked()
                     {
                         let _ = run_and_report(state, host, create_free_panel);
                     }
-                    if ui.button("Zamknij").clicked() {
+                    if ui.button("Close").clicked() {
                         close_requested = true;
                     }
                 });
@@ -1465,16 +1464,16 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             // Przycisk przezroczystości rozciągnięty na całą szerokość okna (Item 8)
             let trans_lbl = if state.panels_translucent {
-                "👁 Przezroczystość formatek (WŁ: 0.50)"
+                "👁 Panel Translucency (ON: 0.50)"
             } else {
-                "👁 Przezroczystość formatek (WYŁ: 1.0)"
+                "👁 Panel Translucency (OFF: 1.0)"
             };
             let trans_col = if state.panels_translucent { COL_GOLD } else { COL_BLUE };
             if ui.add_sized(
                 [ui.available_width(), CTRL_H],
                 egui::Button::new(RichText::new(trans_lbl).color(trans_col)),
             )
-            .on_hover_text("Włącza delikatną przezroczystość (0.50) wszystkich formatek mebla, aby widzieć wewnętrzne krawędzie i otwory")
+            .on_hover_text("Toggles slight translucency (0.50) on all cabinet panels so internal edges and holes are visible")
             .clicked()
             {
                 let _ = toggle_panels_translucency(state, host);
@@ -1505,24 +1504,22 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             let edge_text = match &state.connector_edge_pick {
                 Some(e) => format!("{} [e{}]", e.body, e.index),
-                None => "Select (1. krawędź)".to_string(),
+                None => "Select (1st edge)".to_string(),
             };
             let has_edge = state.connector_edge_pick.is_some();
 
             let face_text = match &state.connector_face_pick {
                 Some(f) => format!("{} [f{}]", f.body, f.index),
-                None => "Select (2. ściana)".to_string(),
+                None => "Select (2nd face)".to_string(),
             };
             let has_face = state.connector_face_pick.is_some();
 
-            // Zwiększona odległość między etykietą a polem: spacing([14.0, 6.0]) (Item 2)
             egui::Grid::new("wood_connectors_grid")
                 .num_columns(2)
                 .spacing([14.0, 6.0])
                 .min_col_width(82.0)
                 .show(ui, |ui| {
-                    // 1. Grupa złącz
-                    ui.add(egui::Label::new(RichText::new("Grupa").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Group").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     egui::ComboBox::from_id_salt("wood_conn_cat")
                         .selected_text(&current_cat_name)
                         .width(136.0)
@@ -1547,7 +1544,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // 2. Okucie
-                    ui.add(egui::Label::new(RichText::new("Okucie").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Hardware").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     egui::ComboBox::from_id_salt("wood_conn_preset")
                         .selected_text(&current_preset_name)
                         .width(136.0)
@@ -1572,7 +1569,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                     // Krok 1: Krawędź (Item 1: wysokość 24.0)
                     let slot0_active = state.connector_active_slot == 0;
-                    ui.add(egui::Label::new(RichText::new("1. Krawędź").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("1. Edge").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let color = if slot0_active { COL_BLUE } else if has_edge { COL_GREEN } else { COL_TEXT };
                         let mut text = RichText::new(&edge_text).color(color);
@@ -1593,7 +1590,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                     // Krok 2: Ściana (Item 1: wysokość 24.0)
                     let slot1_active = state.connector_active_slot == 1;
-                    ui.add(egui::Label::new(RichText::new("2. Ściana").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("2. Face").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let color = if slot1_active { COL_BLUE } else if has_face { COL_GREEN } else { COL_TEXT };
                         let mut text = RichText::new(&face_text).color(color);
@@ -1613,7 +1610,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // 4. Od brzegu (X) (Item 1: wysokość 24.0)
-                    ui.add(egui::Label::new(RichText::new("Od brzegu (X)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("From Edge (X)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let x_resp = ui.add_sized([80.0, CTRL_H], egui::TextEdit::singleline(&mut state.connector_offset_x));
                         if x_resp.changed() {
@@ -1634,7 +1631,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         let sign_str = if state.connector_shift_sign > 0.0 { "+" } else { "-" };
                         let sign_col = if state.connector_shift_sign > 0.0 { COL_GREEN } else { COL_GOLD };
                         if ui.add_sized([26.0, CTRL_H], egui::Button::new(RichText::new(sign_str).strong().color(sign_col)))
-                            .on_hover_text("Odwróć zwrot przesunięcia (+/-)")
+                            .on_hover_text("Flip offset direction (+/-)")
                             .clicked()
                         {
                             state.connector_shift_sign = -state.connector_shift_sign;
@@ -1644,7 +1641,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // Ilość (N) ze stepperami [-] i [+] (Item 1: wysokość 24.0)
-                    ui.add(egui::Label::new(RichText::new("Ilość (N)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Count (N)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         if ui.add_sized([26.0, CTRL_H], egui::Button::new(" - ")).clicked() {
                             let mut cnt = parse_f64_or(&state.connector_count, 2.0).round() as i64;
@@ -1662,12 +1659,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                             state.connector_count = cnt.to_string();
                             update_ghost_preview(state, host);
                         }
-                        ui.label(RichText::new("szt").small().color(COL_MUTED));
+                        ui.label(RichText::new("pcs").small().color(COL_MUTED));
                     });
                     ui.end_row();
                 });
 
-            // Wymiary nawierceń w dedykowanej ramce rozciągniętej na całą szerokość okna (Item 4)
             if let Some(p) = &current_preset {
                 ui.add_space(6.0);
                 let avail_w = ui.available_width();
@@ -1679,15 +1675,15 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     .show(ui, |ui| {
                         ui.set_min_width(avail_w.max(220.0) - 16.0);
                         ui.set_width(avail_w.max(220.0) - 16.0);
-                        ui.label(RichText::new("Wymiary nawierceń:").strong().color(COL_TEXT).size(11.5));
+                        ui.label(RichText::new("Drilling Dimensions:").strong().color(COL_TEXT).size(11.5));
                         ui.add_space(2.0);
                         let face_desc = if state.connector_through_face {
-                            format!("fi {:.1} mm (przelot)", p.face_hole.diameter)
+                            format!("dia {:.1} mm (through)", p.face_hole.diameter)
                         } else {
-                            format!("fi {:.1}×{:.0} mm (ślepy)", p.face_hole.diameter, p.face_hole.depth)
+                            format!("dia {:.1}×{:.0} mm (blind)", p.face_hole.diameter, p.face_hole.depth)
                         };
                         ui.label(
-                            RichText::new(format!("Brzeg: fi {:.1}×{:.0} mm  |  Ściana: {}", p.edge_hole.diameter, p.edge_hole.depth, face_desc))
+                            RichText::new(format!("Edge: dia {:.1}×{:.0} mm  |  Face: {}", p.edge_hole.diameter, p.edge_hole.depth, face_desc))
                                 .size(11.0)
                                 .color(Color32::from_rgb(180, 195, 215)),
                         );
@@ -1698,10 +1694,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.separator();
             ui.add_space(6.0);
 
-            // Rząd 1 narzędziowy: Wyczyść i Poprzednie (obok siebie, jednakowa wysokość) (Item 5 & 7)
             ui.horizontal(|ui| {
-                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Wyczyść"))
-                    .on_hover_text("Czyści wybraną krawędź oraz ścianę i wraca do Kroku 1")
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Clear"))
+                    .on_hover_text("Clears selected edge and face and returns to Step 1")
                     .clicked()
                 {
                     state.connector_edge_pick = None;
@@ -1713,11 +1708,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                 let has_prev = state.connector_last_edge_pick.is_some();
                 let prev_btn = egui::Button::new(
-                    RichText::new("↺ Poprzednie")
+                    RichText::new("↺ Previous")
                         .color(if has_prev { COL_BLUE } else { Color32::from_rgb(110, 115, 125) }),
                 );
                 if ui.add_enabled(has_prev, prev_btn.min_size(vec2(130.0, CTRL_H)))
-                    .on_hover_text("Wczytuje ostatnio użytą krawędź i ścianę (np. do dodania wkrętów po kołkach)")
+                    .on_hover_text("Loads the last used edge and face (e.g. to add screws after dowels)")
                     .clicked()
                 {
                     state.connector_edge_pick = state.connector_last_edge_pick.clone();
@@ -1728,13 +1723,12 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             ui.add_space(4.0);
 
-            // Rząd 2 zatwierdzający: Zamknij i Zatwierdź (jednakowa wysokość) (Item 5)
             ui.horizontal(|ui| {
-                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Zamknij")).clicked() {
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Close")).clicked() {
                     close_requested = true;
                 }
-                if ui.add_sized([130.0, CTRL_H], egui::Button::new(RichText::new("Zatwierdź").strong().color(COL_GREEN)))
-                    .on_hover_text("Wierci otwory dla wybranej krawędzi i ściany, czyści zaznaczenie i pozwala wskazać kolejną parę")
+                if ui.add_sized([130.0, CTRL_H], egui::Button::new(RichText::new("Apply").strong().color(COL_GREEN)))
+                    .on_hover_text("Drills holes for the selected edge and face, clears selection, and allows picking the next pair")
                     .clicked()
                 {
                     let _ = run_and_report(state, host, create_connectors);
@@ -1746,16 +1740,16 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             const CTRL_H: f32 = 24.0;
 
             let trans_lbl = if state.panels_translucent {
-                "👁 Przezroczystość formatek (WŁ: 0.50)"
+                "👁 Panel Translucency (ON: 0.50)"
             } else {
-                "👁 Przezroczystość formatek (WYŁ: 1.0)"
+                "👁 Panel Translucency (OFF: 1.0)"
             };
             let trans_col = if state.panels_translucent { COL_GOLD } else { COL_BLUE };
             if ui.add_sized(
                 [ui.available_width(), CTRL_H],
                 egui::Button::new(RichText::new(trans_lbl).color(trans_col)),
             )
-            .on_hover_text("Włącza delikatną przezroczystość (0.50) wszystkich formatek mebla, aby widzieć czopy i gniazda")
+            .on_hover_text("Toggles slight translucency (0.50) on all cabinet panels to inspect tenons and mortises")
             .clicked()
             {
                 let _ = toggle_panels_translucency(state, host);
@@ -1777,13 +1771,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             let edge_text = match &state.tdogbone_edge_pick {
                 Some(e) => format!("{} [e{}]", e.body, e.index),
-                None => "Select (1. krawędź czopa)".to_string(),
+                None => "Select (1st tenon edge)".to_string(),
             };
             let has_edge = state.tdogbone_edge_pick.is_some();
 
             let face_text = match &state.tdogbone_face_pick {
                 Some(f) => format!("{} [f{}]", f.body, f.index),
-                None => "Select (2. ściana gniazda)".to_string(),
+                None => "Select (2nd mortise face)".to_string(),
             };
             let has_face = state.tdogbone_face_pick.is_some();
 
@@ -1792,8 +1786,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 .spacing([14.0, 6.0])
                 .min_col_width(82.0)
                 .show(ui, |ui| {
-                    // 1. Preset z cnc_joints.json
-                    ui.add(egui::Label::new(RichText::new("Preset CNC").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("CNC Preset").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     egui::ComboBox::from_id_salt("wood_tdogbone_preset")
                         .selected_text(&current_preset_name)
                         .width(136.0)
@@ -1818,7 +1811,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                     // Krok 1: Krawędź formatki z czopem
                     let slot0_active = state.tdogbone_active_slot == 0;
-                    ui.add(egui::Label::new(RichText::new("1. Krawędź (Czop)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("1. Edge (Tenon)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let color = if slot0_active { COL_BLUE } else if has_edge { COL_GREEN } else { COL_TEXT };
                         let mut text = RichText::new(&edge_text).color(color);
@@ -1839,7 +1832,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                     // Krok 2: Ściana formatki z gniazdem
                     let slot1_active = state.tdogbone_active_slot == 1;
-                    ui.add(egui::Label::new(RichText::new("2. Ściana (Gniazdo)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("2. Face (Mortise)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let color = if slot1_active { COL_BLUE } else if has_face { COL_GREEN } else { COL_TEXT };
                         let mut text = RichText::new(&face_text).color(color);
@@ -1859,7 +1852,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // Szerokość połączenia (L)
-                    ui.add(egui::Label::new(RichText::new("Szerokość (L)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Width (L)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let w_resp = ui.add_sized([80.0, CTRL_H], egui::TextEdit::singleline(&mut state.tdogbone_width));
                         if w_resp.changed() {
@@ -1870,7 +1863,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // Odsunięcie od boków formatki z czopem (X)
-                    ui.add(egui::Label::new(RichText::new("Od boków (X)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("From Ends (X)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let x_resp = ui.add_sized([80.0, CTRL_H], egui::TextEdit::singleline(&mut state.tdogbone_offset_x));
                         if x_resp.changed() {
@@ -1881,7 +1874,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // Ilość połączeń (N)
-                    ui.add(egui::Label::new(RichText::new("Ilość (N)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Count (N)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         if ui.add_sized([26.0, CTRL_H], egui::Button::new(" - ")).clicked() {
                             let mut cnt = parse_f64_or(&state.tdogbone_count, 1.0).round() as i64;
@@ -1899,7 +1892,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                             state.tdogbone_count = cnt.to_string();
                             update_ghost_preview(state, host);
                         }
-                        ui.label(RichText::new("szt").small().color(COL_MUTED));
+                        ui.label(RichText::new("pcs").small().color(COL_MUTED));
                     });
                     ui.end_row();
                 });
@@ -1915,11 +1908,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     .show(ui, |ui| {
                         ui.set_min_width(avail_w.max(220.0) - 16.0);
                         ui.set_width(avail_w.max(220.0) - 16.0);
-                        ui.label(RichText::new("Parametry geometrii CNC:").strong().color(COL_TEXT).size(11.5));
+                        ui.label(RichText::new("CNC Geometry Parameters:").strong().color(COL_TEXT).size(11.5));
                         ui.add_space(2.0);
                         ui.label(
                             RichText::new(format!(
-                                "Frez: fi {:.0} mm | Podcięcie HSM: {:.0}×{:.0} mm (R{:.1})",
+                                "Bit: dia {:.0} mm | HSM Relief: {:.0}×{:.0} mm (R{:.1})",
                                 p.contour_tool_dia_mm,
                                 p.relief_width_mm,
                                 p.relief_depth_mm,
@@ -1930,7 +1923,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         );
                         ui.label(
                             RichText::new(format!(
-                                "Dogbone gniazda: 4× fi {:.1} mm (odsunięcie {:.1} mm / {:.0}°)",
+                                "Mortise Dogbone: 4× dia {:.1} mm (offset {:.1} mm / {:.0}°)",
                                 p.dogbone_drill_dia_mm,
                                 p.dogbone_corner_offset_mm,
                                 p.dogbone_angle_deg
@@ -1957,7 +1950,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                     ui.add_space(2.0);
                                     ui.label(
                                         RichText::new(format!(
-                                            "Gotowe: {}× czop {:.0}×{:.0} mm ({} → {})",
+                                            "Ready: {}× tenon {:.0}×{:.0} mm ({} → {})",
                                             plan.joint_centers.len(),
                                             plan.joint_width,
                                             plan.face_thickness,
@@ -1987,8 +1980,8 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(6.0);
 
             ui.horizontal(|ui| {
-                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Wyczyść"))
-                    .on_hover_text("Czyści wybraną krawędź oraz ścianę i wraca do Kroku 1")
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Clear"))
+                    .on_hover_text("Clears selected edge and face and returns to Step 1")
                     .clicked()
                 {
                     state.tdogbone_edge_pick = None;
@@ -2000,11 +1993,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                 let has_prev = state.tdogbone_last_edge_pick.is_some();
                 let prev_btn = egui::Button::new(
-                    RichText::new("↺ Poprzednie")
+                    RichText::new("↺ Previous")
                         .color(if has_prev { COL_BLUE } else { Color32::from_rgb(110, 115, 125) }),
                 );
                 if ui.add_enabled(has_prev, prev_btn.min_size(vec2(130.0, CTRL_H)))
-                    .on_hover_text("Wczytuje ostatnio użytą krawędź i ścianę")
+                    .on_hover_text("Loads the last used edge and face")
                     .clicked()
                 {
                     state.tdogbone_edge_pick = state.tdogbone_last_edge_pick.clone();
@@ -2016,11 +2009,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
-                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Zamknij")).clicked() {
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Close")).clicked() {
                     close_requested = true;
                 }
-                if ui.add_sized([130.0, CTRL_H], egui::Button::new(RichText::new("Zatwierdź").strong().color(COL_GREEN)))
-                    .on_hover_text("Tworzy czop z podcięciami HSM na 1. formatce (ukrywając 2.), a następnie wycina gniazdo z 4 otworami dogbone na 2. formatce (ukrywając 1.)")
+                if ui.add_sized([130.0, CTRL_H], egui::Button::new(RichText::new("Apply").strong().color(COL_GREEN)))
+                    .on_hover_text("Creates the tenon with HSM reliefs on panel 1 (hiding panel 2), then cuts the mortise with 4 dogbone holes on panel 2 (hiding panel 1)")
                     .clicked()
                 {
                     let _ = run_and_report(state, host, create_tdogbone);
@@ -2033,16 +2026,16 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             // Przycisk przezroczystości rozciągnięty na całą szerokość okna
             let trans_lbl = if state.panels_translucent {
-                "👁 Przezroczystość formatek (WŁ: 0.50)"
+                "👁 Panel Translucency (ON: 0.50)"
             } else {
-                "👁 Przezroczystość formatek (WYŁ: 1.0)"
+                "👁 Panel Translucency (OFF: 1.0)"
             };
             let trans_col = if state.panels_translucent { COL_GOLD } else { COL_BLUE };
             if ui.add_sized(
                 [ui.available_width(), CTRL_H],
                 egui::Button::new(RichText::new(trans_lbl).color(trans_col)),
             )
-            .on_hover_text("Włącza delikatną przezroczystość (0.50) wszystkich formatek mebla, aby widzieć wnętrze i krawędzie")
+            .on_hover_text("Toggles slight translucency (0.50) on all cabinet panels to inspect interior and edges")
             .clicked()
             {
                 let _ = toggle_panels_translucency(state, host);
@@ -2064,13 +2057,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             let face0_text = match &state.hinge_face_picks[0] {
                 Some(f) => format!("{} [f{}]", f.body, f.index),
-                None => "Select (1. plecy frontu)".to_string(),
+                None => "Select (1st front back face)".to_string(),
             };
             let has_face0 = state.hinge_face_picks[0].is_some();
 
             let face1_text = match &state.hinge_face_picks[1] {
                 Some(f) => format!("{} [f{}]", f.body, f.index),
-                None => "Select (2. bok korpusu)".to_string(),
+                None => "Select (2nd side panel)".to_string(),
             };
             let has_face1 = state.hinge_face_picks[1].is_some();
 
@@ -2102,7 +2095,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                     // Krok 1: Plecy frontu
                     let slot0_active = state.hinge_active_slot == 0;
-                    ui.add(egui::Label::new(RichText::new("1. Plecy frontu").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("1. Front Back").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let color = if slot0_active { COL_BLUE } else if has_face0 { COL_GREEN } else { COL_TEXT };
                         let mut text = RichText::new(&face0_text).color(color);
@@ -2123,7 +2116,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
                     // Krok 2: Bok korpusu
                     let slot1_active = state.hinge_active_slot == 1;
-                    ui.add(egui::Label::new(RichText::new("2. Bok korpusu").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("2. Side Panel").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let color = if slot1_active { COL_BLUE } else if has_face1 { COL_GREEN } else { COL_TEXT };
                         let mut text = RichText::new(&face1_text).color(color);
@@ -2143,7 +2136,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // Od brzegu (Z) - domyślnie 100 mm
-                    ui.add(egui::Label::new(RichText::new("Od brzegu (Z)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("From Edge (Z)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         let z_resp = ui.add_sized([80.0, CTRL_H], egui::TextEdit::singleline(&mut state.hinge_offset_x));
                         if z_resp.changed() {
@@ -2154,7 +2147,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     ui.end_row();
 
                     // Ilość (N) - stepper [-] i [+], minimum 2 sztuki!
-                    ui.add(egui::Label::new(RichText::new("Ilość (N)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.add(egui::Label::new(RichText::new("Count (N)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
                     ui.horizontal(|ui| {
                         if ui.add_sized([26.0, CTRL_H], egui::Button::new(" - ")).clicked() {
                             let mut cnt = parse_f64_or(&state.hinge_count, 2.0).round() as i64;
@@ -2174,7 +2167,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                             state.hinge_count = cnt.to_string();
                             update_ghost_preview(state, host);
                         }
-                        ui.label(RichText::new("szt").small().color(COL_MUTED));
+                        ui.label(RichText::new("pcs").small().color(COL_MUTED));
                     });
                     ui.end_row();
                 });
@@ -2191,15 +2184,15 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     .show(ui, |ui| {
                         ui.set_min_width(avail_w.max(220.0) - 16.0);
                         ui.set_width(avail_w.max(220.0) - 16.0);
-                        ui.label(RichText::new("Wymiary nawierceń:").strong().color(COL_TEXT).size(11.5));
+                        ui.label(RichText::new("Drilling Dimensions:").strong().color(COL_TEXT).size(11.5));
                         ui.add_space(2.0);
                         ui.label(
                             RichText::new(format!(
-                                "Front (Puszka): fi {:.0}×{:.0} mm (K={:.1}) + 2× wkręty fi {:.1}×{:.0} mm\nBok (Prowadnik): 2× wkręty fi {:.1}×{:.0} mm (rozstaw {:.0} mm, od brzegu {:.0} mm)",
+                                "Front (Cup): dia {:.0}×{:.0} mm (K={:.1}) + 2× screws dia {:.1}×{:.0} mm\nSide (Plate): 2× screws dia {:.1}×{:.0} mm (spacing {:.0} mm, setback {:.0} mm)",
                                 std.front.cup_diameter_mm, std.front.cup_depth_mm, std.front.edge_distance_k_mm,
                                 std.front.screw_hole_diameter_mm, std.front.screw_hole_depth_mm,
-                                std.bok.screw_hole_diameter_mm, std.bok.screw_hole_depth_mm,
-                                std.bok.spacing_z_mm, std.bok.edge_distance_mm,
+                                std.side.screw_hole_diameter_mm, std.side.screw_hole_depth_mm,
+                                std.side.spacing_z_mm, std.side.edge_distance_mm,
                             ))
                             .size(11.0)
                             .color(Color32::from_rgb(180, 195, 215)),
@@ -2213,8 +2206,8 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             // Rząd 1 narzędziowy: Wyczyść
             ui.horizontal(|ui| {
-                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Wyczyść"))
-                    .on_hover_text("Czyści wybrane ściany i wraca do wyboru pleców frontu")
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Clear"))
+                    .on_hover_text("Clears selected faces and returns to picking the front back face")
                     .clicked()
                 {
                     state.hinge_face_picks = [None, None];
@@ -2228,11 +2221,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             // Rząd 2 zatwierdzający: Zamknij i Zatwierdź
             ui.horizontal(|ui| {
-                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Zamknij")).clicked() {
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Close")).clicked() {
                     close_requested = true;
                 }
-                if ui.add_sized([130.0, CTRL_H], egui::Button::new(RichText::new("Zatwierdź").strong().color(COL_GREEN)))
-                    .on_hover_text("Wierci puszki na froncie oraz otwory prowadników na boku mebla")
+                if ui.add_sized([130.0, CTRL_H], egui::Button::new(RichText::new("Apply").strong().color(COL_GREEN)))
+                    .on_hover_text("Drills cup holes on the front and mounting plate holes on the cabinet side")
                     .clicked()
                 {
                     let _ = run_and_report(state, host, create_hinges);
@@ -2244,9 +2237,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             const CTRL_H: f32 = 24.0;
 
             let trans_lbl = if state.panels_translucent {
-                "👁 Przezroczystość formatek (WŁ: 0.50)"
+                "👁 Panel Translucency (ON: 0.50)"
             } else {
-                "👁 Przezroczystość formatek (WYŁ: 1.0)"
+                "👁 Panel Translucency (OFF: 1.0)"
             };
             let trans_col = if state.panels_translucent { COL_GOLD } else { COL_BLUE };
             if ui
@@ -2254,7 +2247,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     [ui.available_width(), CTRL_H],
                     egui::Button::new(RichText::new(trans_lbl).color(trans_col)),
                 )
-                .on_hover_text("Włącza delikatną przezroczystość (0.50) wszystkich formatek mebla, aby łatwo wskazać wewnętrzne ściany i widzieć ducha szuflady")
+                .on_hover_text("Toggles 50% translucency on all panels to inspect inner faces and the drawer ghost preview")
                 .clicked()
             {
                 let _ = toggle_panels_translucency(state, host);
@@ -2296,7 +2289,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 .spacing([12.0, 6.0])
                 .min_col_width(88.0)
                 .show(ui, |ui| {
-                    // System szuflady (ogólny wybór z drawers.json)
+                    // Drawer system selector
                     ui.add(
                         egui::Label::new(RichText::new("System").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
@@ -2325,9 +2318,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         });
                     ui.end_row();
 
-                    // Lista 1: Wysokość szuflady
+                    // List 1: Drawer height
                     ui.add(
-                        egui::Label::new(RichText::new("Wysokość").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Height").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     egui::ComboBox::from_id_salt("wood_drawer_height")
@@ -2351,9 +2344,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         });
                     ui.end_row();
 
-                    // Lista 2: Głębokość nominalna (NL)
+                    // List 2: Nominal depth (NL)
                     ui.add(
-                        egui::Label::new(RichText::new("Głębokość (NL)").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Depth (NL)").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     egui::ComboBox::from_id_salt("wood_drawer_nl")
@@ -2363,7 +2356,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                             if let Some(sys) = &current_sys {
                                 for l in &sys.lengths {
                                     let val_str = format!("{:.0}", l.nl_mm);
-                                    let lbl_str = format!("{:.0} mm (korpus min. {:.0} mm)", l.nl_mm, l.nl_mm + sys.min_depth_clearance_mm);
+                                    let lbl_str = format!("{:.0} mm (cabinet min. {:.0} mm)", l.nl_mm, l.nl_mm + sys.min_depth_clearance_mm);
                                     if ui
                                         .selectable_value(
                                             &mut state.drawer_nl_mm,
@@ -2379,12 +2372,12 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         });
                     ui.end_row();
 
-                    // 4 kroki wskazania ścian w oknie 3D
+                    // 4 face selection steps in 3D viewport
                     let step_labels = [
-                        ("1. Lewy bok", "Select (wewn. bok L)"),
-                        ("2. Prawy bok", "Select (wewn. bok P)"),
-                        ("3. Wieniec dolny", "Select (góra wieńca)"),
-                        ("4. Plecy frontu", "Select (plecy frontu)"),
+                        ("1. Left side", "Select (inner side L)"),
+                        ("2. Right side", "Select (inner side R)"),
+                        ("3. Bottom panel", "Select (top of bottom)"),
+                        ("4. Front back-face", "Select (back of front)"),
                     ];
                     for (slot_idx, (row_lbl, placeholder)) in step_labels.into_iter().enumerate() {
                         let is_active = state.drawer_active_slot == slot_idx;
@@ -2432,9 +2425,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         ui.end_row();
                     }
 
-                    // Podniesienie szuflady od górnego boku dolnego wieńca
+                    // Vertical lift from top of bottom panel
                     ui.add(
-                        egui::Label::new(RichText::new("Podniesienie (Z)").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Lift (Z)").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     ui.horizontal(|ui| {
@@ -2445,12 +2438,12 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         if z_resp.changed() {
                             update_ghost_preview(state, host);
                         }
-                        ui.label(RichText::new("mm od wieńca").small().color(COL_MUTED));
+                        ui.label(RichText::new("mm from bottom").small().color(COL_MUTED));
                     });
                     ui.end_row();
                 });
 
-            // Belka weryfikacji wymiarów i parametrów formatki DNO + PLECY
+            // Clearance verification & panel formula summary
             ui.add_space(6.0);
             let avail_w = ui.available_width();
             let frame_stroke_col = if state.drawer_validation_error {
@@ -2481,7 +2474,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         );
                     } else if let (Some(sys), Some(h)) = (&current_sys, &current_height) {
                         ui.label(
-                            RichText::new("Wzory i nawiercenia systemu:")
+                            RichText::new("System formulas & drilling:")
                                 .strong()
                                 .color(COL_TEXT)
                                 .size(11.5),
@@ -2489,7 +2482,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                         ui.add_space(2.0);
                         ui.label(
                             RichText::new(format!(
-                                "Dno: (LW - {:.0}) × (NL - {:.0}) × {:.0} mm\nPlecy: (LW - {:.0}) × {:.0} × {:.0} mm\nOtwory: fi {:.1}×{:.1} mm (prowadnice Z=+{:.0}, front Z=+{:.1}, plecy 9 mm od boku)",
+                                "Bottom: (LW - {:.0}) × (NL - {:.0}) × {:.0} mm\nBack: (LW - {:.0}) × {:.0} × {:.0} mm\nHoles: dia {:.1}×{:.1} mm (slides Z=+{:.0}, front Z=+{:.1}, back 9 mm from edge)",
                                 sys.bottom_width_deduction_mm,
                                 sys.bottom_depth_deduction_mm,
                                 sys.board_thickness_mm,
@@ -2518,8 +2511,8 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             ui.horizontal(|ui| {
                 if ui
-                    .add_sized([110.0, CTRL_H], egui::Button::new("Wyczyść"))
-                    .on_hover_text("Czyści wybrane ściany i wraca do Kroku 1")
+                    .add_sized([110.0, CTRL_H], egui::Button::new("Clear"))
+                    .on_hover_text("Clears picked faces and returns to Step 1")
                     .clicked()
                 {
                     state.drawer_face_picks = [None, None, None, None];
@@ -2536,7 +2529,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             ui.horizontal(|ui| {
                 if ui
-                    .add_sized([110.0, CTRL_H], egui::Button::new("Zamknij"))
+                    .add_sized([110.0, CTRL_H], egui::Button::new("Close"))
                     .clicked()
                 {
                     close_requested = true;
@@ -2544,9 +2537,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 if ui
                     .add_sized(
                         [148.0, CTRL_H],
-                        egui::Button::new(RichText::new("Zatwierdź").strong().color(COL_GREEN)),
+                        egui::Button::new(RichText::new("Apply").strong().color(COL_GREEN)),
                     )
-                    .on_hover_text("Tworzy komponent szuflady z formatkami DNA i PLECÓW oraz wierci otwory znaczące w bokach, froncie i plecach")
+                    .on_hover_text("Creates the drawer component (Bottom + Back) and drills pilot holes in sides, front, and back")
                     .clicked()
                 {
                     let _ = run_and_report(state, host, create_drawer);
@@ -2559,7 +2552,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             ui.label(
                 RichText::new(
-                    "Wyszukuje bryły nieprzypisane do komponentów, poza Kubaturą lub powstałe przez odbicie lustrzane / przecięcie. Możesz też kliknąć bryłę w drzewku lub oknie 3D.",
+                    "Finds bodies unassigned to components, outside the bounding box, or created via mirror/split. You can also click a body in the tree or 3D viewport.",
                 )
                 .size(11.0)
                 .color(COL_LABEL),
@@ -2567,11 +2560,11 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Oznaczenie szafki:").color(COL_LABEL));
+                ui.label(RichText::new("Cabinet Code:").color(COL_LABEL));
                 ui.add_sized([60.0, CTRL_H], egui::TextEdit::singleline(&mut state.cabinet_prefix));
                 if ui
-                    .add_sized([115.0, CTRL_H], egui::Button::new("🔍 Skanuj drzewko"))
-                    .on_hover_text("Przeszukuje model w poszukiwaniu luźnych brył lub duplikatów (np. po Mirror/Split)")
+                    .add_sized([115.0, CTRL_H], egui::Button::new("🔍 Scan Tree"))
+                    .on_hover_text("Scans the model for loose bodies or duplicates (e.g. after Mirror/Split)")
                     .clicked()
                 {
                     let _ = run_and_report(state, host, scan_adapt_candidates);
@@ -2580,12 +2573,12 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             ui.add_space(4.0);
             ui.horizontal(|ui| {
-                if ui.small_button("☑ Zaznacz wszystkie").clicked() {
+                if ui.small_button("☑ Select All").clicked() {
                     for c in &mut state.adapt_candidates {
                         c.selected = true;
                     }
                 }
-                if ui.small_button("☐ Odznacz wszystkie").clicked() {
+                if ui.small_button("☐ Deselect All").clicked() {
                     for c in &mut state.adapt_candidates {
                         c.selected = false;
                     }
@@ -2593,7 +2586,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 let sel_cnt = state.adapt_candidates.iter().filter(|c| c.selected).count();
                 ui.label(
                     RichText::new(format!(
-                        "Wybrano: {} / {}",
+                        "Selected: {} / {}",
                         sel_cnt,
                         state.adapt_candidates.len()
                     ))
@@ -2609,7 +2602,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 ui.add_space(6.0);
                 ui.label(
                     RichText::new(
-                        "Brak luźnych brył do adaptacji. Kliknij bryłę w drzewku po lewej stronie (lub ścianę w 3D), aby dodać ją ręcznie.",
+                        "No loose bodies to adapt. Click a body in the tree on the left (or a face in 3D) to add it manually.",
                     )
                     .small()
                     .color(COL_MUTED),
@@ -2652,7 +2645,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                     ui.horizontal(|ui| {
                                         ui.label(
                                             RichText::new(format!(
-                                                "Komponent: {} | Status: {}",
+                                                "Component: {} | Status: {}",
                                                 cand.current_component, cand.reason
                                             ))
                                             .small()
@@ -2660,12 +2653,12 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                         );
                                     });
                                     ui.horizontal(|ui| {
-                                        ui.label(RichText::new("Własna nazwa:").small().color(COL_LABEL));
+                                        ui.label(RichText::new("Custom Name:").small().color(COL_LABEL));
                                         ui.add(
                                             egui::TextEdit::singleline(&mut cand.custom_name)
                                                 .id_salt(("adapt_custom_name", idx))
                                                 .desired_width(145.0)
-                                                .hint_text("np. wieniec_gora"),
+                                                .hint_text("e.g. top_panel"),
                                         );
                                     });
                                 });
@@ -2684,19 +2677,19 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
-                if ui.add_sized([95.0, CTRL_H], egui::Button::new("Zamknij")).clicked() {
+                if ui.add_sized([95.0, CTRL_H], egui::Button::new("Close")).clicked() {
                     close_requested = true;
                 }
                 if ui
                     .add_sized(
                         [155.0, CTRL_H],
                         egui::Button::new(
-                            RichText::new("Zagnieźdź jako formatkę")
+                            RichText::new("Adopt as Panel")
                                 .strong()
                                 .color(COL_GREEN),
                         ),
                     )
-                    .on_hover_text("Nadaje zaznaczonym bryłom unikalny numer S01_<NR>, tworzy komponenty <Nazwa>_K i zagnieżdża je w Kubaturze")
+                    .on_hover_text("Assigns a unique S01_<NO> ID to selected bodies, creates <Name>_K components, and nests them in the bounding box")
                     .clicked()
                 {
                     let _ = run_and_report(state, host, adapt_selected_bodies);
@@ -2730,9 +2723,8 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 .spacing([12.0, 6.0])
                 .min_col_width(82.0)
                 .show(ui, |ui| {
-                    // 1. Wybór grubości obrzeża z pliku edgebanding.json
                     ui.add(
-                        egui::Label::new(RichText::new("Obrzeże").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Edgeband").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     ui.horizontal(|ui| {
@@ -2766,15 +2758,14 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     });
                     ui.end_row();
 
-                    // 2. Tryb pracy: Ręczny vs Automatyczny
                     ui.add(
-                        egui::Label::new(RichText::new("Tryb edycji").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Edit Mode").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     ui.horizontal(|ui| {
                         for (mode, label) in [
-                            (EdgebandMode::Manual, "Ręczny (Brzeg)"),
-                            (EdgebandMode::Auto, "Automatyczny"),
+                            (EdgebandMode::Manual, "Manual (Edge)"),
+                            (EdgebandMode::Auto, "Automatic"),
                         ] {
                             let is_sel = state.edgeband_mode == mode;
                             let btn_text = RichText::new(label).size(11.0).color(if is_sel {
@@ -2793,10 +2784,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     });
                     ui.end_row();
 
-                    // 3. Reguła automatyczna (gdy wybrano Tryb Automatyczny)
                     if state.edgeband_mode == EdgebandMode::Auto {
                         ui.add(
-                            egui::Label::new(RichText::new("Reguła auto").color(COL_LABEL))
+                            egui::Label::new(RichText::new("Auto Rule").color(COL_LABEL))
                                 .wrap_mode(egui::TextWrapMode::Extend),
                         );
                         egui::ComboBox::from_id_salt("wood_edgeband_auto_rule")
@@ -2818,13 +2808,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(4.0);
             let hint_msg = match state.edgeband_mode {
                 EdgebandMode::Manual => {
-                    "Kliknij płaski brzeg formatki w 3D, aby włączyć/wyłączyć okleinę."
+                    "Click a narrow edge face of a panel in 3D to toggle edgebanding."
                 }
                 EdgebandMode::Auto => match state.edgeband_auto_rule {
                     EdgebandAutoRule::CornerPair => {
-                        "Kliknij ścianę formatki blisko wybranego narożnika (4 obszary → 1D1K)."
+                        "Click a panel face near the desired corner (4 zones → 1L1W)."
                     }
-                    _ => "Kliknij dowolną ścianę formatki w 3D, aby nadać wybraną regułę oklejania.",
+                    _ => "Click any panel face in 3D to apply the selected edgebanding rule.",
                 },
             };
             ui.label(RichText::new(hint_msg).small().color(COL_MUTED));
@@ -2908,7 +2898,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(4.0);
             ui.label(
                 RichText::new(format!(
-                    "W buforze: {} brzegów na {} formatkach",
+                    "Staged: {} edges on {} panels",
                     staged_edges_cnt, staged_panels_cnt
                 ))
                 .small()
@@ -2929,9 +2919,9 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 if ui
                     .add_enabled(
                         has_last,
-                        egui::Button::new("Wyczyść formatkę").min_size(vec2(120.0, CTRL_H)),
+                        egui::Button::new("Clear Panel").min_size(vec2(120.0, CTRL_H)),
                     )
-                    .on_hover_text("Usuwa obrzeża z ostatnio wskazanej formatki")
+                    .on_hover_text("Removes edgebanding from the last picked panel")
                     .clicked()
                 {
                     let last = state.edgeband_last_panel.clone();
@@ -2942,15 +2932,15 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             ui.add_space(4.0);
 
             ui.horizontal(|ui| {
-                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Zamknij")).clicked() {
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Close")).clicked() {
                     close_requested = true;
                 }
                 if ui
                     .add_sized(
                         [130.0, CTRL_H],
-                        egui::Button::new(RichText::new("Zatwierdź").strong().color(COL_GREEN)),
+                        egui::Button::new(RichText::new("Apply").strong().color(COL_GREEN)),
                     )
-                    .on_hover_text("Koloruje na stałe oklejone brzegi formatek i zapisuje oznaczenia 2D2K w Tabeli Rozkroju")
+                    .on_hover_text("Permanently colors banded panel edges and saves 2L2W codes in the Cutting List")
                     .clicked()
                 {
                     let _ = run_and_report(state, host, apply_edgebanding);
@@ -2973,7 +2963,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             let current_name = current_preset
                 .as_ref()
                 .map(|p| {
-                    let kind = if p.has_grain { "Słoje" } else { "Jednolity" };
+                    let kind = if p.has_grain { "Grain" } else { "Solid" };
                     format!("{} ({})", p.name, kind)
                 })
                 .unwrap_or_else(|| state.decor_preset_id.clone());
@@ -2983,14 +2973,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 .unwrap_or([200, 157, 102]);
             let preset_col32 = Color32::from_rgb(preset_rgb[0], preset_rgb[1], preset_rgb[2]);
 
-            // 1. Tryb pracy: DODAJ / USUŃ
             egui::Grid::new("wood_decor_grid")
                 .num_columns(2)
                 .spacing([12.0, 6.0])
                 .min_col_width(80.0)
                 .show(ui, |ui| {
                     ui.add(
-                        egui::Label::new(RichText::new("Tryb").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Mode").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     ui.horizontal(|ui| {
@@ -3000,14 +2989,14 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                             .add_sized(
                                 [82.0, CTRL_H],
                                 egui::Button::new(
-                                    RichText::new("DODAJ")
+                                    RichText::new("ADD")
                                         .strong()
                                         .size(11.0)
                                         .color(if add_sel { COL_GREEN } else { COL_TEXT }),
                                 )
                                 .selected(add_sel),
                             )
-                            .on_hover_text("Kliknij formatkę, aby nadać kolor dekoru i usłojenie; ponowny klik obraca o 90°")
+                            .on_hover_text("Click a panel to apply decor color and grain; clicking again rotates grain 90°")
                             .clicked()
                         {
                             state.decor_mode = DecorMode::Add;
@@ -3017,14 +3006,14 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                             .add_sized(
                                 [82.0, CTRL_H],
                                 egui::Button::new(
-                                    RichText::new("USUŃ")
+                                    RichText::new("REMOVE")
                                         .strong()
                                         .size(11.0)
                                         .color(if rem_sel { COL_RED } else { COL_TEXT }),
                                 )
                                 .selected(rem_sel),
                             )
-                            .on_hover_text("Kliknij formatkę, aby usunąć dekor i usłojenie (nie zmienia brzegów)")
+                            .on_hover_text("Click a panel to remove decor and grain (keeps edgebanding)")
                             .clicked()
                         {
                             state.decor_mode = DecorMode::Remove;
@@ -3033,9 +3022,8 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     });
                     ui.end_row();
 
-                    // 2. Lista rozwijana dekorów z pliku decors.json
                     ui.add(
-                        egui::Label::new(RichText::new("Dekor").color(COL_LABEL))
+                        egui::Label::new(RichText::new("Decor").color(COL_LABEL))
                             .wrap_mode(egui::TextWrapMode::Extend),
                     );
                     ui.horizontal(|ui| {
@@ -3053,7 +3041,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                             .width(166.0)
                             .show_ui(ui, |ui| {
                                 for p in &lib.presets {
-                                    let kind = if p.has_grain { "Słoje" } else { "Jednolity" };
+                                    let kind = if p.has_grain { "Grain" } else { "Solid" };
                                     let label = format!("{} [{}]", p.name, kind);
                                     let p_col = Color32::from_rgb(p.rgb[0], p.rgb[1], p.rgb[2]);
                                     ui.horizontal(|ui| {
@@ -3090,32 +3078,32 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 .inner_margin(6.0)
                 .show(ui, |ui| {
                     ui.label(
-                        RichText::new("Nowy dekor (zapis w decors.json)")
+                        RichText::new("New Decor (saved to decors.json)")
                             .small()
                             .strong()
                             .color(COL_LABEL),
                     );
                     ui.add_space(3.0);
                     ui.horizontal(|ui| {
-                        ui.label(RichText::new("Nazwa:").small().color(COL_MUTED));
+                        ui.label(RichText::new("Name:").small().color(COL_MUTED));
                         ui.add(
                             egui::TextEdit::singleline(&mut state.decor_custom_name)
                                 .desired_width(155.0)
-                                .hint_text("np. Dąb Evoke K365"),
+                                .hint_text("e.g. Oak Evoke K365"),
                         );
                         ui.color_edit_button_srgb(&mut state.decor_custom_rgb);
                     });
                     ui.horizontal(|ui| {
-                        ui.checkbox(&mut state.decor_custom_has_grain, "Ma usłojenie (słoje)");
+                        ui.checkbox(&mut state.decor_custom_has_grain, "Has grain");
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             if ui
-                                .button(RichText::new("+ Dodaj").small().strong().color(COL_BLUE))
-                                .on_hover_text("Dodaje wpis do pliku decors.json i ustawia jako aktywny dekor")
+                                .button(RichText::new("+ Add").small().strong().color(COL_BLUE))
+                                .on_hover_text("Adds an entry to decors.json and sets it as the active decor")
                                 .clicked()
                             {
                                 let name_trimmed = state.decor_custom_name.trim().to_string();
                                 if name_trimmed.is_empty() {
-                                    state.status_message = "Podaj nazwę nowego dekoru.".into();
+                                    state.status_message = "Enter a name for the new decor.".into();
                                     state.status_error = true;
                                 } else {
                                     let new_id = lib.upsert_preset(
@@ -3129,12 +3117,12 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                                             state.decor_custom_name.clear();
                                             state.decor_mode = DecorMode::Add;
                                             let kind = if state.decor_custom_has_grain {
-                                                "z usłojeniem"
+                                                "with grain"
                                             } else {
-                                                "jednolity"
+                                                "solid"
                                             };
                                             let msg = format!(
-                                                "Zapisano dekor '{}' ({}) do decors.json.",
+                                                "Saved decor '{}' ({}) to decors.json.",
                                                 name_trimmed, kind
                                             );
                                             state.status_message = msg.clone();
@@ -3157,13 +3145,13 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             if state.decor_mode == DecorMode::Add {
                 ui.label(
-                    RichText::new("Kliknij dowolną ścianę formatki: nada kolor głównym płaszczyznom; ponowny klik obraca słoje o 90°.")
+                    RichText::new("Click any panel face: applies color to main faces; clicking again rotates grain 90°.")
                         .small()
                         .color(COL_MUTED),
                 );
             } else {
                 ui.label(
-                    RichText::new("Kliknij formatkę, aby usunąć jej dekor i usłojenie (krawędzie z obrzeżem zostaną zachowane).")
+                    RichText::new("Click a panel to remove its decor and grain (edgebanded edges are preserved).")
                         .small()
                         .color(COL_RED),
                 );
@@ -3174,15 +3162,15 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                 let info_txt = match state.panel_decors.get(&state.decor_last_panel) {
                     Some(d) => {
                         let g = if !d.has_grain {
-                            "Jednolity"
+                            "Solid"
                         } else if d.grain_rotated {
-                            "90° (W poprzek)"
+                            "90° (Cross)"
                         } else {
-                            "0° (Wzdłuż)"
+                            "0° (Along)"
                         };
-                        format!("Ostatnia: {} → {} [{}]", state.decor_last_panel, d.decor_name, g)
+                        format!("Last: {} → {} [{}]", state.decor_last_panel, d.decor_name, g)
                     }
-                    None => format!("Ostatnia: {} → brak dekoru", state.decor_last_panel),
+                    None => format!("Last: {} → no decor", state.decor_last_panel),
                 };
                 ui.label(RichText::new(info_txt).small().color(COL_GOLD));
             }
@@ -3194,7 +3182,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             ui.add_space(6.0);
             ui.horizontal(|ui| {
-                if ui.add_sized([248.0, CTRL_H], egui::Button::new("Zamknij")).clicked() {
+                if ui.add_sized([248.0, CTRL_H], egui::Button::new("Close")).clicked() {
                     close_requested = true;
                 }
             });
@@ -3203,17 +3191,17 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
         ActiveDialog::Joints => {
             ui.label(
                 RichText::new(
-                    "Tworzy główny komponent Korpus_Baza (Grounded) oraz komponenty dla wszystkich formatek i łączy je wiązaniami sztywnymi (joint.as_built type: rigid).",
+                    "Creates the root Cabinet_Base (Grounded) component and subcomponents for all panels, binding them with rigid joints (joint.as_built type: rigid).",
                 )
                 .color(COL_LABEL),
             );
             ui.add_space(6.0);
             let panels_str = if state.created_panels.is_empty() {
-                "Brak".to_string()
+                "None".to_string()
             } else {
                 state.created_panels.join(", ")
             };
-            ui.label(RichText::new(format!("Formatki ({}): {}", state.created_panels.len(), panels_str)).color(COL_TEXT));
+            ui.label(RichText::new(format!("Panels ({}): {}", state.created_panels.len(), panels_str)).color(COL_TEXT));
 
             ui.add_space(8.0);
             ui.separator();
@@ -3221,7 +3209,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
 
             ui.horizontal(|ui| {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(RichText::new("Połącz Jointami").strong()).clicked() {
+                    if ui.button(RichText::new("Bind Joints").strong()).clicked() {
                         run_and_report(state, host, bind_all_joints);
                     }
                     if ui.button("Cancel").clicked() {
@@ -3272,50 +3260,50 @@ pub fn draw_bom_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodHost
     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
 
     ui.horizontal(|ui| {
-        ui.label(RichText::new("Katalog zapisu STEP:").color(COL_LABEL));
+        ui.label(RichText::new("STEP Export Folder:").color(COL_LABEL));
         ui.add(egui::TextEdit::singleline(&mut state.export_step_dir).desired_width(320.0));
-        if ui.button("📁 Otwórz").on_hover_text("Otwórz katalog w Eksploratorze Windows").clicked() {
+        if ui.button("📁 Open").on_hover_text("Open folder in Windows Explorer").clicked() {
             let p = state.export_step_dir.clone();
             std::thread::spawn(move || {
                 let _ = std::process::Command::new("explorer").arg(p).spawn();
             });
         }
         ui.separator();
-        ui.label(RichText::new("Domyślna szafka:").color(COL_LABEL));
+        ui.label(RichText::new("Default Cabinet:").color(COL_LABEL));
         ui.add(egui::TextEdit::singleline(&mut state.cabinet_prefix).desired_width(52.0));
     });
 
     ui.add_space(3.0);
 
     ui.horizontal(|ui| {
-        if ui.button(RichText::new("⟳ Przelicz tabelę z modelu").strong()).clicked() {
+        if ui.button(RichText::new("⟳ Refresh Table from Model").strong()).clicked() {
             run_and_report(state, host, refresh_cutting_list);
         }
         if ui
             .button(
-                RichText::new("✔ Przelicz nazwy w modelu")
+                RichText::new("✔ Apply Names to Model")
                     .strong()
                     .color(COL_GOLD),
             )
-            .on_hover_text("Zatwierdza wpisane w tabeli oznaczenia szafek (np. S02, S05) i nazwy własne — zmienia nazwy brył i komponentów w modelu (Enter w polu tekstowym nie przelicza modelu)")
+            .on_hover_text("Commits cabinet codes (e.g. S02, S05) and custom names entered in the table — renames bodies and components in the model (pressing Enter in a text field does not update the model)")
             .clicked()
         {
             run_and_report(state, host, apply_bom_renames);
         }
-        if ui.button("📋 Kopiuj CSV").clicked() {
+        if ui.button("📋 Copy CSV").clicked() {
             let csv = cutting_list_to_csv(state);
             ui.ctx().copy_text(csv);
-            state.status_message = "Skopiowano tabelę rozkroju (CSV) do schowka.".into();
+            state.status_message = "Copied cutting list (CSV) to clipboard.".into();
             state.status_error = false;
-            host.set_status("Skopiowano tabelę rozkroju (CSV) do schowka.", false);
+            host.set_status("Copied cutting list (CSV) to clipboard.", false);
         }
         if ui
             .button(
-                RichText::new("⬇ Eksportuj STEP + CSV")
+                RichText::new("⬇ Export STEP + CSV")
                     .strong()
                     .color(COL_GREEN),
             )
-            .on_hover_text("Zapisuje każdą formatkę jako osobny plik STEP ({KodFormatki}_{G}x{S}x{D}.step, bez numeru Lp) oraz plik CSV z tabelą rozkroju w tym samym folderze")
+            .on_hover_text("Saves each panel as a separate STEP file ({PanelCode}_{T}x{W}x{L}.step, without row index) plus a CSV cutting list in the same folder")
             .clicked()
         {
             match export_panels_to_step(state, host) {
@@ -3341,7 +3329,7 @@ pub fn draw_bom_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodHost
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.label(
                 RichText::new(format!(
-                    "Razem: {} szt. | {:.3} m² | Obrzeże: {:.2} mb",
+                    "Total: {} pcs | {:.3} m² | Edgeband: {:.2} m",
                     state.cutting_list.len(),
                     total_area,
                     total_edgeband_mb
@@ -3354,18 +3342,17 @@ pub fn draw_bom_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodHost
 
     ui.add_space(3.0);
 
-    // Szybkie przypisanie numeru szafki dla zakresu numerów formatek (np. formatki 7-11 -> S02)
     ui.horizontal(|ui| {
-        ui.label(RichText::new("Przypisz szafkę dla zakresu nr formatek:").small().color(COL_LABEL));
-        ui.label(RichText::new("Od nr").small().color(COL_MUTED));
+        ui.label(RichText::new("Assign cabinet to panel number range:").small().color(COL_LABEL));
+        ui.label(RichText::new("From #").small().color(COL_MUTED));
         ui.add(egui::TextEdit::singleline(&mut state.bom_range_from).desired_width(36.0));
-        ui.label(RichText::new("Do nr").small().color(COL_MUTED));
+        ui.label(RichText::new("To #").small().color(COL_MUTED));
         ui.add(egui::TextEdit::singleline(&mut state.bom_range_to).desired_width(36.0));
-        ui.label(RichText::new("→ Szafka:").small().color(COL_MUTED));
+        ui.label(RichText::new("→ Cabinet:").small().color(COL_MUTED));
         ui.add(egui::TextEdit::singleline(&mut state.bom_range_cabinet).desired_width(52.0));
         if ui
-            .button(RichText::new("Wpisz do zakresu").color(COL_BLUE))
-            .on_hover_text("Wpisuje podany kod szafki (np. S02) do wierszy z zakresu numerów formatek. Aby zapisać w drzewku modelu, kliknij '✔ Przelicz nazwy w modelu'.")
+            .button(RichText::new("Apply to Range").color(COL_BLUE))
+            .on_hover_text("Sets the given cabinet code (e.g. S02) on rows in the selected panel number range. Click '✔ Apply Names to Model' to save to the model tree.")
             .clicked()
         {
             match apply_bom_range_cabinet(state) {
@@ -3410,18 +3397,18 @@ pub fn draw_bom_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodHost
                 .spacing([14.0, 6.0])
                 .show(ui, |ui| {
                     for header in [
-                        "Lp.",
-                        "Nr",
-                        "Szafka",
-                        "Nazwa własna (opis)",
-                        "Pełna nazwa formatki w modelu",
-                        "Długość [mm]",
-                        "Szerokość [mm]",
-                        "Grubość [mm]",
-                        "Obrzeże",
-                        "Dekor",
-                        "Usłojenie",
-                        "Pow. [m²]",
+                        "#",
+                        "No.",
+                        "Cabinet",
+                        "Custom Name (desc)",
+                        "Full Panel Name in Model",
+                        "Length [mm]",
+                        "Width [mm]",
+                        "Thickness [mm]",
+                        "Edgeband",
+                        "Decor",
+                        "Grain",
+                        "Area [m²]",
                     ] {
                         ui.label(RichText::new(header).strong().color(COL_LABEL));
                     }
@@ -3448,7 +3435,7 @@ pub fn draw_bom_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodHost
                             egui::TextEdit::singleline(&mut row.custom_name_edit)
                                 .id_salt(("bom_cust", idx))
                                 .desired_width(175.0)
-                                .hint_text("np. wieniec_gora"),
+                                .hint_text("e.g. top_panel"),
                         );
 
                         // Pełna nazwa formatki w modelu + podgląd po zmianie
@@ -3495,7 +3482,7 @@ pub fn draw_bom_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodHost
 
     if state.cutting_list.is_empty() {
         ui.add_space(8.0);
-        ui.label(RichText::new("Brak formatek w tabeli. Kliknij '⟳ Przelicz tabelę z modelu' aby odczytać bryły ze sceny.").color(COL_MUTED));
+        ui.label(RichText::new("No panels in cutting list. Click '⟳ Refresh Table from Model' to read bodies from the scene.").color(COL_MUTED));
     }
 }
 
@@ -3509,7 +3496,7 @@ fn format_picks(picks: &[crate::FacePick], required: usize, placeholder: &str) -
         .collect::<Vec<_>>()
         .join(", ");
     if picks.len() < required {
-        s.push_str(" (kliknij 2. ścianę)");
+        s.push_str(" (click 2nd face)");
     }
     s
 }

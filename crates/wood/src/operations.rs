@@ -35,7 +35,7 @@ pub fn set_user_param(host: &mut dyn WoodHost, name: &str, expr: &str) -> Result
                 "expression": expr
             }),
         )
-        .map_err(|e| format!("Błąd parametru {name}: {e}"))?;
+        .map_err(|e| format!("Invalid parameter {name}: {e}"))?;
     }
     Ok(())
 }
@@ -84,7 +84,7 @@ pub fn create_kubatura(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
             "operation": "new"
         }),
     )
-    .map_err(|e| format!("Błąd tworzenia bryły Kubatury: {e}"))?;
+    .map_err(|e| format!("Failed to create bounding box body: {e}"))?;
 
     // 4. Move Kubatura body into the parent component
     let _ = host.execute(
@@ -112,7 +112,7 @@ pub fn create_kubatura(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
     state.created_panels.clear();
     state.panels.clear();
     let _ = refresh_cutting_list(state, host);
-    Ok(format!("Utworzono Kubaturę ({szer}×{gleb}×{wys} mm, grubość {grub} mm)."))
+    Ok(format!("Created bounding box ({szer}×{gleb}×{wys} mm, thickness {grub} mm)."))
 }
 
 /// Updates existing `Szerokosc`, `Glebokosc`, `Wysokosc`, `Grubosc` parameters so all panels recalculate.
@@ -129,7 +129,7 @@ pub fn update_kubatura(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
 
     let _ = host.execute("view.fit", json!({}));
     let _ = refresh_cutting_list(state, host);
-    Ok(format!("Zaktualizowano wymiary mebla ({szer}×{gleb}×{wys} mm, grubość {grub} mm)."))
+    Ok(format!("Updated cabinet dimensions ({szer}×{gleb}×{wys} mm, thickness {grub} mm)."))
 }
 
 /// Fills `state.auto_face_pick` with one of the standard `Kubatura` faces (`left`, `right`, `bottom`, `top`).
@@ -294,6 +294,11 @@ pub fn extract_panel_number_any(name: &str) -> Option<usize> {
         return Some(n);
     }
     for prefix in [
+        "Hole_Edge_",
+        "Hole_Face_",
+        "Hole_Cup_",
+        "Hole_Screw_",
+        "Hole_Plate_",
         "Otwor_Brzeg_",
         "Otwor_Sciana_",
         "Szyk_Zlacz_",
@@ -543,6 +548,10 @@ pub fn next_connector_letter_for_panel(panel_num: usize, host: &mut dyn WoodHost
     for k in 0..1000 {
         let letter = index_to_letter_suffix(k);
         let candidates = [
+            format!("Hole_Edge_{num_pad}_{letter}"),
+            format!("Hole_Face_{num_pad}_{letter}"),
+            format!("Hole_Edge_{num_raw}_{letter}"),
+            format!("Hole_Face_{num_raw}_{letter}"),
             format!("Otwor_Brzeg_{num_pad}_{letter}"),
             format!("Otwor_Sciana_{num_pad}_{letter}"),
             format!("Szyk_Zlacz_{num_pad}_{letter}"),
@@ -572,6 +581,16 @@ pub fn next_hinge_letter_for_panel(
             continue;
         }
         let candidates = [
+            format!("Hole_Cup_{num_pad}_{letter}"),
+            format!("Hole_Screw_{num_pad}_{letter}_1"),
+            format!("Hole_Screw_{num_pad}_{letter}_2"),
+            format!("Hole_Plate_{num_pad}_{letter}_1"),
+            format!("Hole_Plate_{num_pad}_{letter}_2"),
+            format!("Hole_Cup_{num_raw}_{letter}"),
+            format!("Hole_Screw_{num_raw}_{letter}_1"),
+            format!("Hole_Screw_{num_raw}_{letter}_2"),
+            format!("Hole_Plate_{num_raw}_{letter}_1"),
+            format!("Hole_Plate_{num_raw}_{letter}_2"),
             format!("Otwor_Puszka_{num_pad}_{letter}"),
             format!("Otwor_wkret_{num_pad}_{letter}_1"),
             format!("Otwor_wkret_{num_pad}_{letter}_2"),
@@ -647,7 +666,7 @@ pub fn format_clearances_text(clearances: &[f64]) -> String {
             }
         })
         .collect();
-    format!("Światło (1→2): {} mm", parts.join(", "))
+    format!("Clearance (1→2): {} mm", parts.join(", "))
 }
 
 /// Resolves the bounding box `[min, max]` of `body_name` across root and nested components,
@@ -767,7 +786,7 @@ pub fn compute_auto_panel_plan(
         let (axis_name_2, _sign2) = resolve_auto_face_axis_and_sign(p2, b2_min, b2_max, host);
         if axis_name_1 != axis_name_2 {
             return Err(format!(
-                "Wybrane powierzchnie nie leżą w tej samej osi normalnej (1: oś {axis_name_1}, 2: oś {axis_name_2}). Wskaż dwie równoległe ściany."
+                "Selected faces do not share the same normal axis (1: {axis_name_1} axis, 2: {axis_name_2} axis). Pick two parallel faces."
             ));
         }
 
@@ -775,7 +794,7 @@ pub fn compute_auto_panel_plan(
         let c2 = p2.point[axis3];
         let span = (c2 - c1).abs();
         if span < 1.0 {
-            return Err("Wskazane dwie powierzchnie leżą w tej samej płaszczyźnie (odległość 0 mm). Wskaż dwie oddalone od siebie ściany.".into());
+            return Err("Selected two faces lie on the same plane (distance 0 mm). Pick two separated faces.".into());
         }
 
         let dir_1_to_2 = if c2 >= c1 { 1.0 } else { -1.0 };
@@ -783,7 +802,7 @@ pub fn compute_auto_panel_plan(
 
         if span <= f64::from(count) * thick_val {
             return Err(format!(
-                "Odległość między powierzchniami ({:.1} mm) jest za mała na {}× formatkę o grubości {:.1} mm.",
+                "Distance between faces ({:.1} mm) is too small for {}× panel of thickness {:.1} mm.",
                 span, count, thick_val
             ));
         }
@@ -949,13 +968,13 @@ pub fn compute_auto_panel_geometry(
     plan.panels
         .into_iter()
         .next()
-        .ok_or_else(|| "Brak wyliczonej geometrii formatki.".to_string())
+        .ok_or_else(|| "No computed panel geometry available.".to_string())
 }
 
-/// Creates 1 or N panel solids (`solid.box` with `"operation": "new"`) for Quick Formatka respecting offsets, margins, and 2-face division.
+/// Creates 1 or N panel solids (`solid.box` with `"operation": "new"`) for Quick Panel respecting offsets, margins, and 2-face division.
 pub fn create_auto_panel(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<String, String> {
     let Some(pick1) = state.auto_face_pick.clone() else {
-        return Err("Kliknij najpierw ścianę bazową (1) w oknie 3D.".into());
+        return Err("Click the 1st base face in the 3D viewport first.".into());
     };
     let pick2 = state.auto_face_pick_2.clone();
     let raw_input_name = state.auto_name.clone();
@@ -1014,7 +1033,7 @@ pub fn create_auto_panel(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
         let len_z = round1(geom.max[2] - geom.min[2]);
 
         if len_x <= 0.0 || len_y <= 0.0 || len_z <= 0.0 {
-            return Err("Wyznaczone wymiary formatki są zerowe lub ujemne. Sprawdź odsunięcie i marginesy.".into());
+            return Err("Computed panel dimensions are zero or negative. Check offset and margins.".into());
         }
 
         let name = if idx == 0 {
@@ -1081,10 +1100,10 @@ pub fn create_auto_panel(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
     let _ = refresh_cutting_list(state, host);
 
     if created_names.len() == 1 {
-        Ok(format!("Utworzono formatkę '{}'.", created_names[0]))
+        Ok(format!("Created panel '{}'.", created_names[0]))
     } else {
         Ok(format!(
-            "Utworzono {}× formatkę: {}.",
+            "Created {}× panels: {}.",
             created_names.len(),
             created_names.join(", ")
         ))
@@ -1119,7 +1138,7 @@ pub fn compute_free_panel_geometry(
     host: &mut dyn WoodHost,
 ) -> Result<ComputedPanelBounds, String> {
     let (Some(p0), Some(p1)) = (slot0.first(), slot0.get(1)) else {
-        return Err("Krok 1: Wskaż dwa przeciwległe boki w oknie 3D.".into());
+        return Err("Step 1: Pick two opposite side faces in the 3D viewport.".into());
     };
 
     // 1. Rozpoznanie osi Kroku 1 (np. Prawo-Lewo -> X, Przód-Tył -> Y, Góra-Dół -> Z)
@@ -1261,7 +1280,7 @@ pub fn create_free_panel_from_picks(
     host: &mut dyn WoodHost,
 ) -> Result<ComputedPanelBounds, String> {
     if slot2.is_empty() {
-        return Err("Krok 3: Wskaż powierzchnię przyklejenia w oknie 3D.".into());
+        return Err("Step 3: Pick an attachment face in the 3D viewport.".into());
     }
 
     let width_val = parse_f64_or(width_str, 100.0);
@@ -1295,7 +1314,7 @@ pub fn create_free_panel_from_picks(
     let len_z = round1(z_max - z_min);
 
     if len_x <= 0.0 || len_y <= 0.0 || len_z <= 0.0 {
-        return Err("Wyznaczone wymiary formatki są zerowe lub ujemne. Sprawdź zaznaczone ściany.".into());
+        return Err("Computed panel dimensions are zero or negative. Check selected faces.".into());
     }
 
     host.execute(
@@ -1328,9 +1347,9 @@ pub fn toggle_kubatura_visibility(state: &mut WoodState, host: &mut dyn WoodHost
         }),
     )?;
     Ok(if state.kubatura_hidden {
-        "Ukryto Kubaturę (możesz swobodnie klikać wewnętrzne ściany mebla).".to_string()
+        "Bounding box hidden (you can now pick interior cabinet faces freely).".to_string()
     } else {
-        "Pokazano Kubaturę.".to_string()
+        "Bounding box shown.".to_string()
     })
 }
 
@@ -1361,7 +1380,7 @@ pub fn set_panels_translucency(state: &mut WoodState, host: &mut dyn WoodHost, t
     }
     if names.is_empty() {
         state.panels_translucent = false;
-        return Ok("Brak formatek w scenie do zmiany przezroczystości.".into());
+        return Ok("No panels in the scene to toggle translucency.".into());
     }
 
     state.panels_translucent = translucent;
@@ -1378,7 +1397,7 @@ pub fn set_panels_translucency(state: &mut WoodState, host: &mut dyn WoodHost, t
                 }),
             );
         }
-        Ok("Włączono przezroczystość formatek (0.50).".to_string())
+        Ok("Panel translucency enabled (0.50).".to_string())
     } else {
         // Przywróć 1.0: wyczyszczenie override'u przywraca naturalny materiał bryły
         for n in &names {
@@ -1389,7 +1408,7 @@ pub fn set_panels_translucency(state: &mut WoodState, host: &mut dyn WoodHost, t
                 }),
             );
         }
-        Ok("Przywrócono pełną nieprzezroczystość formatek (1.0).".to_string())
+        Ok("Restored full panel opacity (1.0).".to_string())
     }
 }
 
@@ -1492,7 +1511,7 @@ pub fn create_free_panel(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
     host.enable_face_selection();
     let _ = refresh_cutting_list(state, host);
 
-    Ok(format!("Utworzono Wolną Formatkę '{name}'."))
+    Ok(format!("Created Free Panel '{name}'."))
 }
 
 /// Dynamicznie wylicza bryłę "Ducha formatki" oraz cylindrów złączy przed zatwierdzeniem.
@@ -1548,7 +1567,7 @@ pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
                 let label = if decor.grain_rotated {
                     "90° (Poprzek)".to_string()
                 } else {
-                    "0° (Wzdłuż)".to_string()
+                    "0° (Along)".to_string()
                 };
 
                 let box_center = panel.center();
@@ -1628,7 +1647,7 @@ pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
                     }
                     centers.push(p);
                 }
-                let is_screw = state.connector_category_id == "wkrety";
+                let is_screw = state.connector_category_id == "screws" || state.connector_category_id == "wkrety";
                 let radius = preset.edge_hole.diameter * 0.5;
                 let depth_edge = preset.edge_hole.depth;
                 let depth_face = if state.connector_through_face || preset.face_hole.depth <= 0.0 {
@@ -1766,7 +1785,7 @@ pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
                         let mut msgs = Vec::new();
                         if !plan.fits_depth {
                             msgs.push(format!(
-                                "⚠ Głębokość korpusu za mała: wymagane min. {:.0} mm (NL {:.0} + {:.0}), dostępne {:.1} mm!",
+                                "⚠ Cabinet depth too small: min. {:.0} mm required (NL {:.0} + {:.0}), available {:.1} mm!",
                                 plan.required_depth_mm,
                                 plan.nl_mm,
                                 system.min_depth_clearance_mm + plan.inset_setback_mm,
@@ -1775,7 +1794,7 @@ pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
                         }
                         if !plan.fits_height {
                             msgs.push(format!(
-                                "⚠ Wysokość za mała: wymagane min. {:.0} mm, od wieńca (+podniesienie) dostępne {:.1} mm!",
+                                "⚠ Height too small: min. {:.0} mm required, available {:.1} mm above bottom panel (+lift)!",
                                 plan.required_height_mm,
                                 plan.avail_height_mm
                             ));
@@ -1783,14 +1802,14 @@ pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
                         state.drawer_validation_info = msgs.join("\n");
                     } else {
                         let mode_lbl = if plan.is_inset_front {
-                            format!("Front wpuszczany (+{:.0} mm)", plan.inset_setback_mm)
+                            format!("Inset front (+{:.0} mm)", plan.inset_setback_mm)
                         } else if system.push_open_front_gap_mm > 0.0 {
-                            format!("Push-Open (szczelina min. {:.0} mm)", system.push_open_front_gap_mm)
+                            format!("Push-Open (min. {:.0} mm gap)", system.push_open_front_gap_mm)
                         } else {
-                            "Front nakładany".to_string()
+                            "Overlay front".to_string()
                         };
                         state.drawer_validation_info = format!(
-                            "✔ Mieści się w korpusie ({mode_lbl} | LW={:.1} mm | głęb. {:.0}/{:.0} mm | wys. {:.0}/{:.0} mm)\nDno: {:.1} × {:.1} × {:.0} mm  |  Plecy: {:.1} × {:.1} × {:.0} mm",
+                            "✔ Fits in cabinet ({mode_lbl} | LW={:.1} mm | depth {:.0}/{:.0} mm | height {:.0}/{:.0} mm)\nBottom: {:.1} × {:.1} × {:.0} mm  |  Back: {:.1} × {:.1} × {:.0} mm",
                             plan.lw_mm,
                             plan.required_depth_mm,
                             plan.avail_depth_mm,
@@ -2008,7 +2027,7 @@ pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
 /// Odwraca stronę przytulenia formatki do powierzchni odniesienia ("Odwróć Stronę").
 pub fn flip_panel_side(panel_name: &str, state: &mut WoodState, host: &mut dyn WoodHost) -> Result<String, String> {
     if panel_name.is_empty() || panel_name == "Kubatura" {
-        return Err("Wybierz poprawną formatkę do odwrócenia.".into());
+        return Err("Select a valid panel to flip.".into());
     }
 
     // Pobierz informacje o bryle z dokumentu
@@ -2074,7 +2093,7 @@ pub fn flip_panel_side(panel_name: &str, state: &mut WoodState, host: &mut dyn W
             "bodies": [panel_name],
             "translate": translate,
         }),
-    ).map_err(|e| format!("Błąd odwracania formatki '{panel_name}': {e}"))?;
+    ).map_err(|e| format!("Failed to flip panel '{panel_name}': {e}"))?;
 
     // Zaktualizuj stan formatki
     let new_flipped = !is_flipped;
@@ -2100,7 +2119,7 @@ pub fn flip_panel_side(panel_name: &str, state: &mut WoodState, host: &mut dyn W
     let _ = refresh_cutting_list(state, host);
 
     Ok(format!(
-        "Odwrócono stronę formatki '{panel_name}' (oś {axis}, przesunięcie {:.1} mm).",
+        "Flipped panel '{panel_name}' ({axis} axis, offset {:.1} mm).",
         shift
     ))
 }
@@ -2224,13 +2243,13 @@ pub fn bind_all_joints(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
         }
     }
     if panels.is_empty() {
-        return Err("Brak formatek w dokumencie.".into());
+        return Err("No panels in document.".into());
     }
     for p in &panels {
         let _ = bind_single_panel_joint(p, host);
     }
     state.created_panels = panels.clone();
-    Ok(format!("Połączono {} formatek Jointami (Rigid).", panels.len()))
+    Ok(format!("Bound {} panels with rigid joints.", panels.len()))
 }
 
 
@@ -2448,7 +2467,7 @@ pub fn refresh_cutting_list(state: &mut WoodState, host: &mut dyn WoodHost) -> R
     });
 
     state.cutting_list = rows;
-    Ok(format!("Odświeżono tabelę rozkroju ({} poz.).", state.cutting_list.len()))
+    Ok(format!("Refreshed cutting list ({} items).", state.cutting_list.len()))
 }
 
 /// Ustawia oznaczenie szafki (np. `S02`) w polach edycji tabeli dla wierszy o numerach formatek z podanego zakresu `[from..=to]`.
@@ -2457,12 +2476,12 @@ pub fn apply_bom_range_cabinet(state: &mut WoodState) -> Result<String, String> 
         .bom_range_from
         .trim()
         .parse::<usize>()
-        .map_err(|_| "Podaj poprawny początkowy numer formatki (np. 7).".to_string())?;
+        .map_err(|_| "Enter a valid start panel number (e.g. 7).".to_string())?;
     let to_nr = state
         .bom_range_to
         .trim()
         .parse::<usize>()
-        .map_err(|_| "Podaj poprawny końcowy numer formatki (np. 11).".to_string())?;
+        .map_err(|_| "Enter a valid end panel number (e.g. 11).".to_string())?;
     let lo = from_nr.min(to_nr);
     let hi = from_nr.max(to_nr);
     let cab = sanitize_name_segment(&state.bom_range_cabinet);
@@ -2478,10 +2497,10 @@ pub fn apply_bom_range_cabinet(state: &mut WoodState) -> Result<String, String> 
         }
     }
     if matched == 0 {
-        return Err(format!("Brak formatek o numerach z przedziału {lo}–{hi} w tabeli."));
+        return Err(format!("No panels with numbers in range {lo}–{hi} found in the table."));
     }
     Ok(format!(
-        "Wpisano szafkę '{cab}' dla {matched} formatek (numery {lo}–{hi}). Kliknij 'Przelicz nazwy w modelu', aby zapisać w drzewku."
+        "Assigned cabinet '{cab}' to {matched} panels (numbers {lo}–{hi}). Click 'Apply Names to Model' to save to the tree."
     ))
 }
 
@@ -2571,11 +2590,11 @@ pub fn apply_bom_renames(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
     let _ = refresh_cutting_list(state, host);
 
     if !errors.is_empty() && renamed_count == 0 {
-        return Err(format!("Błąd zmiany nazw: {}", errors.join("; ")));
+        return Err(format!("Rename error: {}", errors.join("; ")));
     }
-    let mut msg = format!("Przeliczono i zaktualizowano nazwy {renamed_count} formatek w drzewku modelu.");
+    let mut msg = format!("Recalculated and updated names for {renamed_count} panels in the model tree.");
     if !errors.is_empty() {
-        msg.push_str(&format!(" (Pominięto/błędy: {})", errors.join(", ")));
+        msg.push_str(&format!(" (Skipped/errors: {})", errors.join(", ")));
     }
     Ok(msg)
 }
@@ -2668,14 +2687,14 @@ pub fn scan_adapt_candidates(state: &mut WoodState, host: &mut dyn WoodHost) -> 
 
         let (current_comp, reason_opt) = match body_comp_info.get(&pb.name) {
             None => (
-                "root (luzem)".to_string(),
-                Some("Bryła nieprzypisana do komponentu".to_string()),
+                "root (loose)".to_string(),
+                Some("Body unassigned to a component".to_string()),
             ),
             Some((cname, is_root_or_kub, is_child_of_kub, idx_in_comp, total_in_comp)) => {
                 if *is_root_or_kub {
                     (
                         cname.clone(),
-                        Some("Bryła luzem poza komponentem formatki".to_string()),
+                        Some("Loose body outside a panel component".to_string()),
                     )
                 } else if *total_in_comp > 1
                     && !(cname.contains("_Drawer_")
@@ -2686,17 +2705,17 @@ pub fn scan_adapt_candidates(state: &mut WoodState, host: &mut dyn WoodHost) -> 
                 {
                     (
                         cname.clone(),
-                        Some(format!("Druga bryła w komponencie '{cname}' (po odbiciu/podziale)")),
+                        Some(format!("Second body in component '{cname}' (after mirror/split)")),
                     )
                 } else if !*is_child_of_kub {
                     (
                         cname.clone(),
-                        Some(format!("Poza komponentem Kubatura (w '{cname}')")),
+                        Some(format!("Outside bounding box component (in '{cname}')")),
                     )
                 } else if needs_number {
                     (
                         cname.clone(),
-                        Some("Brak numeru formatki w nazwie bryły".to_string()),
+                        Some("Missing panel number in body name".to_string()),
                     )
                 } else {
                     (cname.clone(), None)
@@ -2726,9 +2745,9 @@ pub fn scan_adapt_candidates(state: &mut WoodState, host: &mut dyn WoodHost) -> 
     let count = candidates.len();
     state.adapt_candidates = candidates;
     Ok(if count == 0 {
-        "Wszystkie bryły w modelu są już poprawnie zagnieżdżone jako formatki w Kubaturze. Możesz też kliknąć dowolną bryłę w drzewku.".to_string()
+        "All bodies in the model are already nested as panels in the bounding box. You can also click any body in the tree.".to_string()
     } else {
-        format!("Wykryto {count} brył do zagnieżdżenia jako formatki.")
+        format!("Detected {count} bodies to adopt as panels.")
     })
 }
 
@@ -2791,7 +2810,7 @@ pub fn consume_adapt_picks(state: &mut WoodState, host: &mut dyn WoodHost) {
             state.adapt_candidates.push(crate::AdaptCandidate {
                 body_name: bname,
                 current_component: "Wskazano z drzewka/3D".to_string(),
-                reason: "Wskazano ręcznie przez użytkownika".to_string(),
+                reason: "Manually picked by user".to_string(),
                 dims_mm,
                 selected: true,
                 cabinet_prefix: state.cabinet_prefix.clone(),
@@ -2812,7 +2831,7 @@ pub fn adapt_selected_bodies(state: &mut WoodState, host: &mut dyn WoodHost) -> 
         .collect();
 
     if selected.is_empty() {
-        return Err("Zaznacz przynajmniej jedną bryłę na liście (lub kliknij bryłę w drzewku).".into());
+        return Err("Select at least one body from the list (or click a body in the tree).".into());
     }
 
     let mut adapted_names = Vec::new();
@@ -2865,16 +2884,16 @@ pub fn adapt_selected_bodies(state: &mut WoodState, host: &mut dyn WoodHost) -> 
     let _ = refresh_cutting_list(state, host);
 
     if adapted_names.is_empty() && !errors.is_empty() {
-        return Err(format!("Błąd adaptacji brył: {}", errors.join("; ")));
+        return Err(format!("Body adaptation error: {}", errors.join("; ")));
     }
 
     let mut msg = format!(
-        "Zagnieżdżono {} brył jako formatki w Kubaturze ({}).",
+        "Adopted {} bodies as panels in the bounding box ({}).",
         adapted_names.len(),
         adapted_names.join(", ")
     );
     if !errors.is_empty() {
-        msg.push_str(&format!(" Błędy: {}", errors.join(", ")));
+        msg.push_str(&format!(" Errors: {}", errors.join(", ")));
     }
     Ok(msg)
 }
@@ -2897,7 +2916,7 @@ pub fn export_panels_to_step(state: &mut WoodState, host: &mut dyn WoodHost) -> 
     };
 
     std::fs::create_dir_all(&export_dir)
-        .map_err(|e| format!("Nie można utworzyć katalogu docelowego '{}': {e}", export_dir.display()))?;
+        .map_err(|e| format!("Cannot create target folder '{}': {e}", export_dir.display()))?;
 
     let sanitize = |name: &str| -> String {
         name.chars()
@@ -2985,25 +3004,25 @@ pub fn export_panels_to_step(state: &mut WoodState, host: &mut dyn WoodHost) -> 
     }
 
     if exported_count == 0 && !csv_saved && !errors.is_empty() {
-        return Err(format!("Błąd eksportu STEP/CSV: {}", errors.join("; ")));
+        return Err(format!("STEP/CSV export error: {}", errors.join("; ")));
     }
 
     let mut msg = format!(
-        "Pomyślnie wyeksportowano {}/{} formatek STEP oraz {} w folderze:\n{}",
+        "Exported {}/{} STEP panels and {} in folder:\n{}",
         exported_count,
         state.cutting_list.len(),
-        if csv_saved { csv_file_name.as_str() } else { "(błąd zapisu CSV)" },
+        if csv_saved { csv_file_name.as_str() } else { "(CSV write error)" },
         export_dir.display()
     );
     if !errors.is_empty() {
-        msg.push_str(&format!("\n(Ostrzeżenia: {})", errors.join(", ")));
+        msg.push_str(&format!("\n(Warnings: {})", errors.join(", ")));
     }
     Ok(msg)
 }
 
 /// Formats the current cutting list (`Tabela Rozkroju`) as CSV text.
 pub fn cutting_list_to_csv(state: &WoodState) -> String {
-    let mut out = String::from("Lp;Szafka;Nr;Nazwa wlasna;Kod formatki;Dlugosc [mm];Szerokosc [mm];Grubosc [mm];Obrzeze;Dekor;Uslojenie;Ilosc [szt];Powierzchnia [m2]\n");
+    let mut out = String::from("No;Cabinet;PanelNo;CustomName;PanelCode;Length [mm];Width [mm];Thickness [mm];Edgeband;Decor;Grain;Qty [pcs];Area [m2]\n");
     for (idx, r) in state.cutting_list.iter().enumerate() {
         out.push_str(&format!(
             "{};{};{:02};{};{};{:.1};{:.1};{:.1};{};{};{};{};{:.3}\n",
@@ -3251,7 +3270,7 @@ pub fn compute_connector_plan(
     };
     let raw_len = (dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]).sqrt();
     if raw_len < 1.0 {
-        return Err("Wskazana krawędź jest za krótka (< 1 mm).".into());
+        return Err("Selected edge is too short (< 1 mm).".into());
     }
 
     let mid = [
@@ -3277,7 +3296,7 @@ pub fn compute_connector_plan(
                             .unwrap_or(std::cmp::Ordering::Equal)
                     })
             })
-            .ok_or_else(|| format!("Nie znaleziono formatki dla wskazanej ściany '{}'.", fp.body))?;
+            .ok_or_else(|| format!("Panel not found for selected face '{}'.", fp.body))?;
 
         // 2. Unambiguously resolve `edge_panel` from the edge (excluding `face_panel`)
         let e_panel = boxes
@@ -3293,7 +3312,7 @@ pub fn compute_connector_plan(
                             .unwrap_or(std::cmp::Ordering::Equal)
                     })
             })
-            .ok_or_else(|| "Nie znaleziono formatki z brzegiem przy wskazanej krawędzi.".to_string())?;
+            .ok_or_else(|| "Panel with edge not found at the selected edge.".to_string())?;
 
         (f_panel, e_panel)
     } else {
@@ -3311,7 +3330,7 @@ pub fn compute_connector_plan(
                             .unwrap_or(std::cmp::Ordering::Equal)
                     })
             })
-            .ok_or_else(|| "Nie znaleziono formatki przy wskazanej krawędzi.".to_string())?;
+            .ok_or_else(|| "Panel not found at the selected edge.".to_string())?;
 
         let secondary = boxes
             .iter()
@@ -3342,7 +3361,7 @@ pub fn compute_connector_plan(
             })
             .ok_or_else(|| {
                 format!(
-                    "Nie wykryto drugiej formatki stykającej się z '{}' przy tej krawędzi.",
+                    "No second panel detected touching '{}' at this edge.",
                     primary.name
                 )
             })?;
@@ -3417,7 +3436,7 @@ pub fn compute_connector_plan(
     let contact_length = (s_max - s_min).abs();
     if contact_length < 10.0 {
         return Err(format!(
-            "Długość styku formatek ({:.1} mm) jest za mała na wstawienie złączy.",
+            "Panel contact length ({:.1} mm) is too short to place connectors.",
             contact_length
         ));
     }
@@ -3475,7 +3494,7 @@ pub fn compute_connector_plan(
 /// Interactive handler for `Złącza` (Kołki / Wkręty): drills edge + face holes and creates a linear pattern on the timeline.
 pub fn create_connectors(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<String, String> {
     let Some(mut edge) = state.connector_edge_pick.clone() else {
-        return Err("Krok 1: Kliknij najpierw krawędź styku (brzeg formatki) w oknie 3D.".into());
+        return Err("Step 1: Click a contact edge (panel edge) in the 3D viewport first.".into());
     };
 
     let mut face_pick = state.connector_face_pick.clone();
@@ -3483,7 +3502,7 @@ pub fn create_connectors(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
     let lib = crate::ConnectorLibrary::load()?;
     let (_, preset) = lib
         .find_preset(&state.connector_preset_id)
-        .ok_or_else(|| "Nie znaleziono wybranego presetu złącza w bibliotece.".to_string())?;
+        .ok_or_else(|| "Selected connector preset not found in library.".to_string())?;
 
     let offset_x = parse_f64_or(&state.connector_offset_x, 50.0).max(5.0);
     let shift_total = parse_f64_or(&state.connector_offset_shift, 0.0);
@@ -3539,9 +3558,9 @@ pub fn create_connectors(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
     let letter = next_connector_letter_for_panel(face_panel_num, host);
     state.connector_counter += 1;
 
-    let edge_hole_name = format!("Otwor_Brzeg_{:02}_{letter}", face_panel_num);
-    let face_hole_name = format!("Otwor_Sciana_{:02}_{letter}", face_panel_num);
-    let pattern_name = format!("Szyk_Zlacz_{:02}_{letter}", face_panel_num);
+    let edge_hole_name = format!("Hole_Edge_{:02}_{letter}", face_panel_num);
+    let face_hole_name = format!("Hole_Face_{:02}_{letter}", face_panel_num);
+    let pattern_name = format!("Connector_Pattern_{:02}_{letter}", face_panel_num);
 
     // 1. Otwór w brzegu (czole) formatki (np. Wieniec / Trawers / Półka)
     let res_edge = host.execute(
@@ -3563,7 +3582,7 @@ pub fn create_connectors(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
                 json!({ "items": ["Kubatura"], "visible": true }),
             );
         }
-        return Err(format!("Błąd wiercenia w brzegu '{}': {e}", plan.edge_panel));
+        return Err(format!("Failed to drill edge hole in '{}': {e}", plan.edge_panel));
     }
 
     // 2. Otwór prostopadły w ścianie formatki (np. Bok) — przelotowy (gdy zaznaczono / wkręty) lub ślepy (kołki)
@@ -3597,7 +3616,7 @@ pub fn create_connectors(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
                 json!({ "items": ["Kubatura"], "visible": true }),
             );
         }
-        return Err(format!("Błąd wiercenia w ścianie '{}': {e}", plan.face_panel));
+        return Err(format!("Failed to drill face hole in '{}': {e}", plan.face_panel));
     }
 
     // 3. Szyk liniowy na osi czasu (Timeline)
@@ -3633,12 +3652,12 @@ pub fn create_connectors(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
     host.enable_edge_selection();
 
     let mode_desc = if state.connector_through_face {
-        "przelotowo"
+        "through"
     } else {
-        "ślepo"
+        "blind"
     };
     Ok(format!(
-        "Dodano {}× {} [nr {:02}_{}] (brzeg: '{}', ściana {}: '{}', L={:.0} mm, rozstaw {:.1} mm). Wskaż kolejną parę (Krawędź + Ściana).",
+        "Added {}× {} [#{:02}_{}] (edge: '{}', face {}: '{}', L={:.0} mm, spacing {:.1} mm). Pick next pair (Edge + Face).",
         plan.count,
         preset.name,
         face_panel_num,
@@ -3727,7 +3746,7 @@ pub fn compute_tdogbone_plan(
     };
     let raw_len = (dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]).sqrt();
     if raw_len < 1.0 {
-        return Err("Wskazana krawędź jest za krótka (< 1 mm).".into());
+        return Err("Selected edge is too short (< 1 mm).".into());
     }
 
     let mid = [
@@ -3750,7 +3769,7 @@ pub fn compute_tdogbone_plan(
                             .unwrap_or(std::cmp::Ordering::Equal)
                     })
             })
-            .ok_or_else(|| format!("Nie znaleziono formatki dla wskazanej ściany '{}'.", fp.body))?;
+            .ok_or_else(|| format!("Panel not found for selected face '{}'.", fp.body))?;
 
         let e_panel = boxes
             .iter()
@@ -3765,7 +3784,7 @@ pub fn compute_tdogbone_plan(
                             .unwrap_or(std::cmp::Ordering::Equal)
                     })
             })
-            .ok_or_else(|| "Nie znaleziono formatki z czopem przy wskazanej krawędzi.".to_string())?;
+            .ok_or_else(|| "Panel with tenon not found at the selected edge.".to_string())?;
 
         (f_panel, e_panel)
     } else {
@@ -3782,7 +3801,7 @@ pub fn compute_tdogbone_plan(
                             .unwrap_or(std::cmp::Ordering::Equal)
                     })
             })
-            .ok_or_else(|| "Nie znaleziono formatki przy wskazanej krawędzi.".to_string())?;
+            .ok_or_else(|| "Panel not found at the selected edge.".to_string())?;
 
         let secondary = boxes
             .iter()
@@ -3813,7 +3832,7 @@ pub fn compute_tdogbone_plan(
             })
             .ok_or_else(|| {
                 format!(
-                    "Nie wykryto drugiej formatki stykającej się z '{}' przy tej krawędzi.",
+                    "No second panel detected touching '{}' at this edge.",
                     primary.name
                 )
             })?;
@@ -3886,7 +3905,7 @@ pub fn compute_tdogbone_plan(
     let eff_width = joint_width.max(16.0);
     if contact_length < eff_width + 4.0 {
         return Err(format!(
-            "Krawędź styku ({:.1} mm) jest krótsza niż wymagana szerokość połączenia ({:.1} mm).",
+            "Contact edge ({:.1} mm) is shorter than required joint width ({:.1} mm).",
             contact_length, eff_width
         ));
     }
@@ -3910,7 +3929,7 @@ pub fn compute_tdogbone_plan(
         };
         if step < eff_width + 1.0 {
             return Err(format!(
-                "Czopy nachodzą na siebie (rozstaw osi {:.1} mm < szerokość czopa {:.1} mm). Zmniejsz ilość, szerokość lub odsunięcie od boków.",
+                "Tenons overlap (center spacing {:.1} mm < tenon width {:.1} mm). Reduce count, width, or end offset.",
                 step, eff_width
             ));
         }
@@ -3954,7 +3973,7 @@ pub fn compute_tdogbone_plan(
 /// 3. Przywraca widoczność obu formatek.
 pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<String, String> {
     let Some(mut edge) = state.tdogbone_edge_pick.clone() else {
-        return Err("Krok 1: Kliknij najpierw krawędź formatki, która ma otrzymać czop.".into());
+        return Err("Step 1: Click the edge of the panel that will receive the tenon first.".into());
     };
     let mut face_pick = state.tdogbone_face_pick.clone();
 
@@ -3962,7 +3981,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
     let preset = lib
         .find_preset(&state.tdogbone_preset_id)
         .cloned()
-        .ok_or_else(|| "Nie znaleziono presetu połączenia w cnc_joints.json.".to_string())?;
+        .ok_or_else(|| "Joint preset not found in cnc_joints.json.".to_string())?;
 
     let joint_width = parse_f64_or(&state.tdogbone_width, preset.joint_width_mm).max(16.0);
     let offset_x = parse_f64_or(&state.tdogbone_offset_x, preset.edge_offset_mm).max(0.0);
@@ -4069,7 +4088,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
         }),
     ) {
         restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
-        return Err(format!("Błąd tworzenia szkicu czopa: {e}"));
+        return Err(format!("Failed to create tenon sketch: {e}"));
     }
 
     let half_w = 0.5 * plan.joint_width;
@@ -4107,7 +4126,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
         ) {
             let _ = host.execute("sketch.cancel", json!({}));
             restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
-            return Err(format!("Błąd rysowania zarysu czopa #{idx1}: {e}"));
+            return Err(format!("Failed to draw tenon profile #{idx1}: {e}"));
         }
         tenon_profile_picks.push(json!({
             "point": [round3(c_u), round3(-0.5 * plan.face_thickness)]
@@ -4218,7 +4237,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
     ) {
         restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
         return Err(format!(
-            "Błąd scalania czopa z formatką '{}': {e}",
+            "Failed to join tenon to panel '{}': {e}",
             plan.edge_panel
         ));
     }
@@ -4241,7 +4260,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
     {
         restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
         return Err(format!(
-            "Błąd wycinania odciążenia HSM w formatce '{}': {e}",
+            "Failed to cut HSM relief in panel '{}': {e}",
             plan.edge_panel
         ));
     }
@@ -4299,7 +4318,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
             ) {
                 restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
                 return Err(format!(
-                    "Błąd wiercenia otworu Dogbone #{} w '{}': {e}",
+                    "Failed to drill Dogbone hole #{} in '{}': {e}",
                     h_idx + 1,
                     plan.face_panel
                 ));
@@ -4332,7 +4351,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
         ) {
             restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
             return Err(format!(
-                "Błąd wycinania gniazda #{idx1} w formatce '{}': {e}",
+                "Failed to cut mortise #{idx1} in panel '{}': {e}",
                 plan.face_panel
             ));
         }
@@ -4352,7 +4371,7 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
     host.enable_edge_selection();
 
     Ok(format!(
-        "Dodano {}× T-Dogbone {:.0}×{:.0} mm [nr {:02}_{}] (czop + HSM R={:.0} w '{}', gniazdo + 4×fi {:.0} w '{}'). Wskaż kolejną parę.",
+        "Added {}× T-Dogbone {:.0}×{:.0} mm [#{:02}_{}] (tenon + HSM R={:.0} in '{}', mortise + 4×dia {:.0} in '{}'). Pick next pair.",
         plan.joint_centers.len(),
         plan.joint_width,
         plan.edge_thickness,
@@ -4489,7 +4508,7 @@ pub fn compute_hinge_plan(
     host: &mut dyn WoodHost,
 ) -> Result<HingePlan, String> {
     if front_pick.body == side_pick.body {
-        return Err("Wskazano tę samą formatkę dla frontu i boku. Wskaż najpierw plecy frontu, a następnie bok korpusu.".into());
+        return Err("Same panel selected for both front and side. Pick the front back face first, then the cabinet side panel.".into());
     }
 
     let front_box = boxes
@@ -4505,7 +4524,7 @@ pub fn compute_hinge_plan(
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
         })
-        .ok_or_else(|| format!("Nie znaleziono bryły frontu '{}'.", front_pick.body))?;
+        .ok_or_else(|| format!("Front body '{}' not found.", front_pick.body))?;
 
     let side_box = boxes
         .iter()
@@ -4520,14 +4539,14 @@ pub fn compute_hinge_plan(
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
         })
-        .ok_or_else(|| format!("Nie znaleziono bryły boku '{}'.", side_pick.body))?;
+        .ok_or_else(|| format!("Side body '{}' not found.", side_pick.body))?;
 
     // Wyznacz dokładnie płaszczyznę i wektor normalny wskazanej ściany frontu i boku
     let front_face = resolve_panel_face(front_box, front_pick, host);
     let side_face = resolve_panel_face(side_box, side_pick, host);
 
     if front_face.axis == side_face.axis {
-        return Err("Wskazane ściany muszą być prostopadłe (Ściana 1: plecy frontu, Ściana 2: bok mebla).".into());
+        return Err("Selected faces must be perpendicular (Face 1: front back face, Face 2: cabinet side).".into());
     }
 
     // Wektor wiercenia w głąb materiału jest ściśle prostopadły do wskazanej ściany
@@ -4550,7 +4569,7 @@ pub fn compute_hinge_plan(
     let z_max = front_box.max[height_axis];
     let height_span = (z_max - z_min).abs();
     if height_span < 60.0 {
-        return Err(format!("Wskazany front jest za krótki ({:.1} mm) na montaż zawiasów.", height_span));
+        return Err(format!("Selected front is too short ({:.1} mm) for hinge placement.", height_span));
     }
 
     let n_hinges = count.max(2);
@@ -4597,11 +4616,11 @@ pub fn compute_hinge_plan(
     let fix_depth = standard.front.screw_hole_depth_mm;
     let half_screw_x = standard.front.screw_spacing_x_mm * 0.5;
 
-    let plate_dist_from_edge = standard.bok.edge_distance_mm;
+    let plate_dist_from_edge = standard.side.edge_distance_mm;
     let plate_depth_coord = depth_front_edge + u_side_depth * plate_dist_from_edge;
-    let plate_diam = standard.bok.screw_hole_diameter_mm;
-    let plate_depth = standard.bok.screw_hole_depth_mm;
-    let half_z = standard.bok.spacing_z_mm * 0.5;
+    let plate_diam = standard.side.screw_hole_diameter_mm;
+    let plate_depth = standard.side.screw_hole_depth_mm;
+    let half_z = standard.side.spacing_z_mm * 0.5;
 
     let round3 = |v: f64| (v * 1000.0).round() / 1000.0;
 
@@ -4621,7 +4640,7 @@ pub fn compute_hinge_plan(
             diameter: standard.front.cup_diameter_mm,
             depth: standard.front.cup_depth_mm,
             target_body: front_box.name.clone(),
-            label: format!("Puszka fi {:.0} #{}", standard.front.cup_diameter_mm, i + 1),
+            label: format!("Cup dia {:.0} #{}", standard.front.cup_diameter_mm, i + 1),
         };
 
         // 2. Dwa otwory mocujące puszkę na froncie (wkręty)
@@ -4653,7 +4672,7 @@ pub fn compute_hinge_plan(
                 diameter: plate_diam,
                 depth: plate_depth,
                 target_body: side_box.name.clone(),
-                label: format!("Prowadnik #{}", i + 1),
+                label: format!("Plate #{}", i + 1),
             });
         }
 
@@ -4677,10 +4696,10 @@ pub fn compute_hinge_plan(
 
 pub fn create_hinges(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<String, String> {
     let Some(front_pick) = state.hinge_face_picks[0].clone() else {
-        return Err("Krok 1: Wskaż najpierw plecy frontu (wewnętrzną stronę drzwi) w oknie 3D.".into());
+        return Err("Step 1: Pick the front back face (inner side of the door) in the 3D viewport first.".into());
     };
     let Some(side_pick) = state.hinge_face_picks[1].clone() else {
-        return Err("Krok 2: Wskaż bok korpusu (wewnętrzną ścianę boku) w oknie 3D.".into());
+        return Err("Step 2: Pick the cabinet side panel (inner side face) in the 3D viewport.".into());
     };
 
     let lib = crate::HingeLibrary::load()?;
@@ -4748,7 +4767,7 @@ pub fn create_hinges(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
         used_letters.push(letter.clone());
 
         // 1. Puszka: Otwor_Puszka_<NR>_<Litera>
-        let cup_name = format!("Otwor_Puszka_{:02}_{letter}", front_panel_num);
+        let cup_name = format!("Hole_Cup_{:02}_{letter}", front_panel_num);
         let res_cup = host.execute(
             "solid.hole",
             json!({
@@ -4764,12 +4783,12 @@ pub fn create_hinges(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
             if hid_kubatura_temp {
                 let _ = host.execute("browser.visibility", json!({ "items": ["Kubatura"], "visible": true }));
             }
-            return Err(format!("Błąd wiercenia puszki w '{}': {e}", inst.cup_hole.target_body));
+            return Err(format!("Failed to drill hinge cup in '{}': {e}", inst.cup_hole.target_body));
         }
 
-        // 2. Mocowania puszki: Otwor_wkret_<NR>_<Litera>_1, Otwor_wkret_<NR>_<Litera>_2
+        // 2. Cup fixing holes: Hole_Screw_<NO>_<Letter>_1, Hole_Screw_<NO>_<Letter>_2
         for (f_i, fix) in inst.cup_fixing_holes.iter().enumerate() {
-            let fix_name = format!("Otwor_wkret_{:02}_{letter}_{}", front_panel_num, f_i + 1);
+            let fix_name = format!("Hole_Screw_{:02}_{letter}_{}", front_panel_num, f_i + 1);
             let _ = host.execute(
                 "solid.hole",
                 json!({
@@ -4785,7 +4804,7 @@ pub fn create_hinges(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
 
         // 3. Prowadnik na boku: Otwor_prowadnik_<NR>_<Litera>_1, Otwor_prowadnik_<NR>_<Litera>_2
         for (p_i, plate) in inst.plate_holes.iter().enumerate() {
-            let plate_name = format!("Otwor_prowadnik_{:02}_{letter}_{}", front_panel_num, p_i + 1);
+            let plate_name = format!("Hole_Plate_{:02}_{letter}_{}", front_panel_num, p_i + 1);
             let res_plate = host.execute(
                 "solid.hole",
                 json!({
@@ -4801,7 +4820,7 @@ pub fn create_hinges(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
                 if hid_kubatura_temp {
                     let _ = host.execute("browser.visibility", json!({ "items": ["Kubatura"], "visible": true }));
                 }
-                return Err(format!("Błąd wiercenia prowadnika w '{}': {e}", plate.target_body));
+                return Err(format!("Failed to drill mounting plate hole in '{}': {e}", plate.target_body));
             }
         }
     }
@@ -4889,7 +4908,7 @@ fn find_panel_box<'a>(boxes: &'a [PanelBox], pick: &crate::FacePick, role: &str)
                         .unwrap_or(std::cmp::Ordering::Equal)
                 })
         })
-        .ok_or_else(|| format!("Nie znaleziono bryły dla '{role}' ('{}').", pick.body))
+        .ok_or_else(|| format!("Body for '{role}' ('{}') not found.", pick.body))
 }
 
 pub fn compute_drawer_plan(
@@ -4905,7 +4924,7 @@ pub fn compute_drawer_plan(
     host: &mut dyn WoodHost,
 ) -> Result<DrawerPlan, String> {
     if side1_pick.body == side2_pick.body {
-        return Err("Wskazano ten sam bok korpusu dwa razy. Wskaż wewnętrzną ścianę lewego i prawego boku.".into());
+        return Err("Same cabinet side picked twice. Pick the inner face of the left and right side panels.".into());
     }
 
     let side1_box = find_panel_box(boxes, side1_pick, "1. Lewy bok")?;
@@ -4919,17 +4938,17 @@ pub fn compute_drawer_plan(
     let front_face = resolve_panel_face(front_box, front_pick, host);
 
     if side1_face.axis != side2_face.axis {
-        return Err("Wskazane ściany boków korpusu (Krok 1 i 2) muszą być do siebie równoległe.".into());
+        return Err("Cabinet side faces (Step 1 and 2) must be parallel to each other.".into());
     }
     let width_axis = side1_face.axis;
 
     if bottom_face.axis == width_axis {
-        return Err("Górna powierzchnia wieńca dolnego (Krok 3) musi być prostopadła do boków korpusu.".into());
+        return Err("Bottom panel top face (Step 3) must be perpendicular to the cabinet sides.".into());
     }
     let height_axis = bottom_face.axis;
 
     if front_face.axis == width_axis || front_face.axis == height_axis {
-        return Err("Plecy frontu (Krok 4) muszą być prostopadłe do boków oraz do wieńca dolnego.".into());
+        return Err("Front back face (Step 4) must be perpendicular to both the sides and the bottom panel.".into());
     }
     let depth_axis = front_face.axis;
 
@@ -4938,7 +4957,7 @@ pub fn compute_drawer_plan(
     let lw_mm = (w_max - w_min).abs();
     if lw_mm <= system.back_width_deduction_mm + 20.0 {
         return Err(format!(
-            "Szerokość wewnętrzna korpusu LW = {:.1} mm jest zbyt mała dla wybranego systemu szuflady.",
+            "Internal cabinet width LW = {:.1} mm is too small for the selected drawer system.",
             lw_mm
         ));
     }
@@ -5107,7 +5126,7 @@ pub fn compute_drawer_plan(
     let back_h = round1(height_var.back_height_mm);
 
     if bottom_w <= 10.0 || bottom_d <= 10.0 || back_w <= 10.0 || back_h <= 10.0 {
-        return Err("Wyliczone wymiary formatek dna lub pleców są nieprawidłowe (<= 10 mm).".into());
+        return Err("Computed bottom or back panel dimensions are invalid (<= 10 mm).".into());
     }
 
     let w_center = 0.5 * (w_min + w_max);
@@ -5273,31 +5292,31 @@ pub fn compute_drawer_plan(
 
 pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<String, String> {
     let Some(p0) = state.drawer_face_picks[0].clone() else {
-        return Err("Krok 1: Wskaż wewnętrzną ścianę lewego boku korpusu w oknie 3D.".into());
+        return Err("Step 1: Pick the inner face of the left cabinet side in the 3D viewport.".into());
     };
     let Some(p1) = state.drawer_face_picks[1].clone() else {
-        return Err("Krok 2: Wskaż wewnętrzną ścianę prawego boku korpusu w oknie 3D.".into());
+        return Err("Step 2: Pick the inner face of the right cabinet side in the 3D viewport.".into());
     };
     let Some(p2) = state.drawer_face_picks[2].clone() else {
-        return Err("Krok 3: Wskaż górną powierzchnię dolnego wieńca w oknie 3D.".into());
+        return Err("Step 3: Pick the top face of the bottom panel in the 3D viewport.".into());
     };
     let Some(p3) = state.drawer_face_picks[3].clone() else {
-        return Err("Krok 4: Wskaż wewnętrzną ścianę (plecy) frontu szuflady w oknie 3D.".into());
+        return Err("Step 4: Pick the inner (back) face of the drawer front in the 3D viewport.".into());
     };
 
     let lib = crate::DrawerLibrary::load()?;
     let system = lib
         .find_system(&state.drawer_system_id)
-        .ok_or_else(|| "Nie znaleziono wybranego systemu szuflady.".to_string())?
+        .ok_or_else(|| "Selected drawer system not found.".to_string())?
         .clone();
     let height_var = system
         .find_height(&state.drawer_height_id)
-        .ok_or_else(|| "Nie znaleziono wybranej wysokości szuflady.".to_string())?
+        .ok_or_else(|| "Selected drawer height not found.".to_string())?
         .clone();
     let nl_val = parse_f64_or(&state.drawer_nl_mm, 450.0);
     let length_var = system
         .find_length(nl_val)
-        .ok_or_else(|| "Nie znaleziono wybranej długości nominalnej NL.".to_string())?
+        .ok_or_else(|| "Selected nominal length NL not found.".to_string())?
         .clone();
     let lift_z = parse_f64_or(&state.drawer_lift_z, 0.0).max(0.0);
 
@@ -5317,13 +5336,13 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
 
     if !plan.fits_depth {
         return Err(format!(
-            "Wybrana głębokość szuflady NL {:.0} mm nie mieści się w korpusie! Wymagane min. {:.0} mm, dostępne {:.1} mm.",
+            "Selected drawer depth NL {:.0} mm does not fit in the cabinet! Required min. {:.0} mm, available {:.1} mm.",
             plan.nl_mm, plan.required_depth_mm, plan.avail_depth_mm
         ));
     }
     if !plan.fits_height {
         return Err(format!(
-            "Wybrana wysokość szuflady {:.0} mm nie mieści się w korpusie! Wymagane min. {:.0} mm, dostępne {:.1} mm.",
+            "Selected drawer height {:.0} mm does not fit in the cabinet! Required min. {:.0} mm, available {:.1} mm.",
             height_var.drawer_height_mm, plan.required_height_mm, plan.avail_height_mm
         ));
     }
@@ -5413,7 +5432,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
         if hid_kubatura_temp {
             let _ = host.execute("browser.visibility", json!({ "items": ["Kubatura"], "visible": true }));
         }
-        return Err(format!("Błąd tworzenia formatki dna szuflady '{bottom_name}': {e}"));
+        return Err(format!("Failed to create drawer bottom panel '{bottom_name}': {e}"));
     }
 
     // 4. Utwórz bryłę PLECÓW szuflady (solid.box)
@@ -5435,7 +5454,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
         if hid_kubatura_temp {
             let _ = host.execute("browser.visibility", json!({ "items": ["Kubatura"], "visible": true }));
         }
-        return Err(format!("Błąd tworzenia formatki pleców szuflady '{back_name}': {e}"));
+        return Err(format!("Failed to create drawer back panel '{back_name}': {e}"));
     }
 
     // 5. Wierć płytkie otwory znaczące w lewym boku, prawym boku, froncie oraz w plecach szuflady
@@ -5578,7 +5597,7 @@ pub fn create_drawer(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<S
     host.enable_face_selection();
 
     Ok(format!(
-        "Utworzono szufladę w komponencie '{}' (Dno: '{}', Plecy: '{}') oraz nawiercono otwory (boki: 2×{}, front: {}, plecy: {}).",
+        "Created drawer in component '{}' (Bottom: '{}', Back: '{}') and drilled pilot holes (sides: 2×{}, front: {}, back: {}).",
         drawer_comp_name,
         bottom_name,
         back_name,
@@ -5609,10 +5628,10 @@ pub fn narrow_edge_side_label(thin_axis: usize, side_idx: usize) -> &'static str
     match (ax, is_max) {
         (0, false) => "-X (Lewy)",
         (0, true) => "+X (Prawy)",
-        (1, false) => "-Y (Przód)",
-        (1, true) => "+Y (Tył)",
-        (2, false) => "-Z (Dół)",
-        _ => "+Z (Góra)",
+        (1, false) => "-Y (Front)",
+        (1, true) => "+Y (Back)",
+        (2, false) => "-Z (Bottom)",
+        _ => "+Z (Top)",
     }
 }
 
@@ -5780,7 +5799,7 @@ pub fn resolve_narrow_edge_side(
             .or_else(|| face_obj.get("normal"))
             .and_then(Value::as_array);
         let Some(narr) = normal_arr else {
-            return Err("Wskazana ściana jest zakrzywiona (łuk/otwór). Wskaż płaski brzeg.".into());
+            return Err("Selected face is curved (arc/hole). Pick a flat edge.".into());
         };
         if narr.len() >= 3 {
             let nx = narr[0].as_f64().unwrap_or(0.0).abs();
@@ -5788,7 +5807,7 @@ pub fn resolve_narrow_edge_side(
             let nz = narr[2].as_f64().unwrap_or(0.0).abs();
             let max_comp = nx.max(ny).max(nz);
             if max_comp < 0.98 {
-                return Err("Wskazana ściana nie jest prostopadłym brzegiem formatki.".into());
+                return Err("Selected face is not a perpendicular panel edge.".into());
             }
         }
     }
@@ -5797,12 +5816,12 @@ pub fn resolve_narrow_edge_side(
     let resolved = resolve_panel_face(panel, pick, host);
     let thin_axis = panel.thin_axis();
     if resolved.axis == thin_axis {
-        return Err("Wskazano główną płaszczyznę płyty. Kliknij wąski brzeg formatki.".into());
+        return Err("Main board face selected. Click a narrow edge of the panel.".into());
     }
 
     // 3. Sprawdź, czy kliknięta ściana leży na zewnętrznym obrysie formatki (a nie wewnątrz wycięcia)
     if (pick.point[resolved.axis] - resolved.surface_coord).abs() > 2.5 {
-        return Err("Wskazana ściana leży wewnątrz wycięcia, a nie na obrysie formatki.".into());
+        return Err("Selected face is inside a cutout, not on the panel perimeter.".into());
     }
 
     let (axis1, axis2) = panel_in_plane_axes(thin_axis);
@@ -5811,7 +5830,7 @@ pub fn resolve_narrow_edge_side(
     } else if resolved.axis == axis2 {
         if resolved.normal_sign < 0.0 { 2 } else { 3 }
     } else {
-        return Err("Wskazano główną płaszczyznę płyty. Kliknij wąski brzeg formatki.".into());
+        return Err("Main board face selected. Click a narrow edge of the panel.".into());
     };
 
     Ok(side_idx)
@@ -5845,7 +5864,7 @@ pub fn compute_auto_edgebanding_for_panel(
         }
         crate::EdgebandAutoRule::FrontOnly => {
             if thin_axis == 1 {
-                return Err("Brak przedniego brzegu (formatka ma oś grubości Y).".into());
+                return Err("No front edge (panel thickness axis is Y).".into());
             }
             let (idx_min_y, idx_max_y) = if axis1 == 1 { (0, 1) } else { (2, 3) };
             let min_covered = is_narrow_edge_covered(panel, idx_min_y, boxes);
@@ -5859,14 +5878,14 @@ pub fn compute_auto_edgebanding_for_panel(
         }
         crate::EdgebandAutoRule::TopOnly => {
             if thin_axis == 2 {
-                return Err("Brak górnego brzegu (formatka ma oś grubości Z).".into());
+                return Err("No top edge (panel thickness axis is Z).".into());
             }
             // Dla thin_axis != 2 zawsze axis2 == 2 (Z), więc +Z to indeks 3
             edges[3] = preset;
         }
         crate::EdgebandAutoRule::BottomOnly => {
             if thin_axis == 2 {
-                return Err("Brak dolnego brzegu (formatka ma oś grubości Z).".into());
+                return Err("No bottom edge (panel thickness axis is Z).".into());
             }
             // Dla thin_axis != 2 zawsze axis2 == 2 (Z), więc -Z to indeks 2
             edges[2] = preset;
@@ -5912,7 +5931,7 @@ pub fn handle_edgeband_face_pick(
     host: &mut dyn WoodHost,
 ) -> Result<String, String> {
     if pick.body == "Kubatura" {
-        return Err("Wskaż formatkę mebla, a nie Kubaturę.".into());
+        return Err("Pick a furniture panel, not the bounding box.".into());
     }
 
     let boxes = extract_panel_boxes(host);
@@ -6115,22 +6134,22 @@ pub fn apply_edgebanding(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
         .sum();
 
     Ok(format!(
-        "Zatwierdzono obrzeża: {} brzegów na {} formatkach (łącznie {:.2} mb).",
+        "Applied edgebanding: {} edges on {} panels (total {:.2} m).",
         colored_edges_count, panels_count, total_mb
     ))
 }
 
-/// Zwraca kolumny `(Dekor, Usłojenie)` dla Tabeli Rozkroju i CSV.
+/// Returns `(Decor, Grain)` columns for the Cutting List and CSV export.
 pub fn decor_bom_fields(opt_decor: Option<&crate::PanelDecor>) -> (String, String) {
     let Some(d) = opt_decor else {
         return (String::new(), String::new());
     };
     let grain = if !d.has_grain {
-        "Jednolity".to_string()
+        "Solid".to_string()
     } else if d.grain_rotated {
-        "W poprzek (90°)".to_string()
+        "Cross (90°)".to_string()
     } else {
-        "Wzdłuż (0°)".to_string()
+        "Along (0°)".to_string()
     };
     (d.decor_name.clone(), grain)
 }
@@ -6226,7 +6245,7 @@ pub fn handle_decor_face_pick(
     host: &mut dyn WoodHost,
 ) -> Result<String, String> {
     if pick.body == "Kubatura" {
-        return Err("Wskaż formatkę mebla, a nie Kubaturę.".into());
+        return Err("Pick a furniture panel, not the bounding box.".into());
     }
 
     let boxes = extract_panel_boxes(host);
@@ -6263,12 +6282,12 @@ pub fn handle_decor_face_pick(
             let _ = refresh_cutting_list(state, host);
             if had_decor {
                 Ok(format!(
-                    "{}: usunięto dekor i usłojenie (brzegi pozostały bez zmian).",
+                    "{}: removed decor and grain (edgebanding unchanged).",
                     panel.name
                 ))
             } else {
                 Ok(format!(
-                    "{}: przywrócono domyślny wygląd głównych płaszczyzn.",
+                    "{}: restored default appearance on main faces.",
                     panel.name
                 ))
             }
@@ -6277,7 +6296,7 @@ pub fn handle_decor_face_pick(
             let lib = crate::DecorLibrary::load()?;
             let preset = lib
                 .find_preset(&state.decor_preset_id)
-                .ok_or_else(|| "Brak wybranego dekoru w pliku 'decors.json'.".to_string())?;
+                .ok_or_else(|| "Selected decor not found in 'decors.json'.".to_string())?;
 
             let prev = state.panel_decors.get(&panel.name).cloned();
             let same_decor = prev
@@ -6318,22 +6337,22 @@ pub fn handle_decor_face_pick(
 
             if !preset.has_grain {
                 Ok(format!(
-                    "{}: przypisano dekor '{}' (jednolity, bez usłojenia).",
+                    "{}: assigned decor '{}' (solid, no grain).",
                     panel.name, preset.name
                 ))
             } else if same_decor {
                 let dir_txt = if grain_rotated {
-                    "90° (w poprzek)"
+                    "90° (cross)"
                 } else {
-                    "0° (wzdłuż)"
+                    "0° (along)"
                 };
                 Ok(format!(
-                    "{}: obrócono usłojenie dla '{}' → {}.",
+                    "{}: rotated grain for '{}' → {}.",
                     panel.name, preset.name, dir_txt
                 ))
             } else {
                 Ok(format!(
-                    "{}: przypisano dekor '{}' (usłojenie 0° — wzdłuż; kliknij ponownie aby obrócić o 90°).",
+                    "{}: assigned decor '{}' (grain 0° — along; click again to rotate 90°).",
                     panel.name, preset.name
                 ))
             }
@@ -6690,7 +6709,7 @@ mod tests {
         state.export_step_dir = tmp.to_string_lossy().to_string();
 
         let res = refresh_cutting_list(&mut state, &mut host).unwrap();
-        assert!(res.contains("2 poz."));
+        assert!(res.contains("2 items"));
         assert_eq!(state.cutting_list.len(), 2);
         assert_eq!(state.cutting_list[0].name, "Bok_L");
         assert_eq!(state.cutting_list[0].length_mm, 720.0);
@@ -6703,7 +6722,7 @@ mod tests {
         assert_eq!(state.cutting_list[1].thickness_mm, 18.0);
 
         let exp_msg = export_panels_to_step(&mut state, &mut host).unwrap();
-        assert!(exp_msg.contains("2/2 formatek STEP"));
+        assert!(exp_msg.contains("2/2 STEP panels"));
         assert_eq!(host.exported.len(), 2);
         assert!(host.exported[0].ends_with("Bok_L_18x560x720.step"));
         assert!(host.exported[1].ends_with("Wytloczona_Polka_18x560x764.step"));
@@ -6884,7 +6903,7 @@ mod tests {
         .unwrap();
         assert_eq!(plan_center.panels.len(), 1);
         assert_eq!(plan_center.clearances_mm, vec![491.0, 491.0]);
-        assert_eq!(format_clearances_text(&plan_center.clearances_mm), "Światło (1→2): 491, 491 mm");
+        assert_eq!(format_clearances_text(&plan_center.clearances_mm), "Clearance (1→2): 491, 491 mm");
         assert_eq!(plan_center.panels[0].min[0], 491.0);
         assert_eq!(plan_center.panels[0].max[0], 509.0);
 
@@ -6904,7 +6923,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(plan_out.clearances_mm, vec![500.0, 482.0]);
-        assert_eq!(format_clearances_text(&plan_out.clearances_mm), "Światło (1→2): 500, 482 mm");
+        assert_eq!(format_clearances_text(&plan_out.clearances_mm), "Clearance (1→2): 500, 482 mm");
         assert_eq!(plan_out.panels[0].min[0], 500.0);
         assert_eq!(plan_out.panels[0].max[0], 518.0);
 
@@ -6924,7 +6943,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(plan_in.clearances_mm, vec![482.0, 500.0]);
-        assert_eq!(format_clearances_text(&plan_in.clearances_mm), "Światło (1→2): 482, 500 mm");
+        assert_eq!(format_clearances_text(&plan_in.clearances_mm), "Clearance (1→2): 482, 500 mm");
         assert_eq!(plan_in.panels[0].min[0], 482.0);
         assert_eq!(plan_in.panels[0].max[0], 500.0);
 
@@ -6945,7 +6964,7 @@ mod tests {
         .unwrap();
         assert_eq!(plan_div2.panels.len(), 2);
         assert_eq!(plan_div2.clearances_mm, vec![321.3, 321.3, 321.3]);
-        assert_eq!(format_clearances_text(&plan_div2.clearances_mm), "Światło (1→2): 321.3, 321.3, 321.3 mm");
+        assert_eq!(format_clearances_text(&plan_div2.clearances_mm), "Clearance (1→2): 321.3, 321.3, 321.3 mm");
 
         // 5. Niezgodna oś normalnej drugiej powierzchni (np. Z zamiast X) -> błąd
         let pick_z = FacePick {
@@ -7021,7 +7040,7 @@ mod tests {
         );
         assert_eq!(
             err_top_on_z.unwrap_err(),
-            "Brak górnego brzegu (formatka ma oś grubości Z)."
+            "No top edge (panel thickness axis is Z)."
         );
 
         // 3. Tryb "Tylko górny brzeg (+Z)" na pionowym boku (18 × 560 × 720) -> 1 krótki brzeg górny (560 mm) = 0D1K!
@@ -7208,19 +7227,19 @@ mod tests {
 
         // Sprawdź kolumny w CSV
         let csv = cutting_list_to_csv(&state);
-        assert!(csv.contains("Dekor;Uslojenie"), "csv header={csv}");
-        assert!(csv.contains("W poprzek (90°)"), "csv row={csv}");
+        assert!(csv.contains("Decor;Grain"), "csv header={csv}");
+        assert!(csv.contains("Cross (90°)"), "csv row={csv}");
 
-        // 3. Jednolity dekor (bez usłojenia): kolor jest nadany, brak strzałek
+        // 3. Solid decor (no grain): color assigned, no arrows
         state.decor_preset_id = "BIEL_ALPEJSKA".into();
         let msg3 = handle_decor_face_pick(&pick, &mut state, &mut host).unwrap();
-        assert!(msg3.contains("jednolity"), "msg3={msg3}");
+        assert!(msg3.contains("solid"), "msg3={msg3}");
         assert!(state.ghost_arrows.is_empty());
 
-        // 4. Przełączenie na USUŃ: czyści dekor i wywołuje appearance.assign bez color na 2 szerokich ścianach
+        // 4. Switch to REMOVE: clears decor and calls appearance.assign without color on 2 broad faces
         state.decor_mode = crate::DecorMode::Remove;
         let msg4 = handle_decor_face_pick(&pick, &mut state, &mut host).unwrap();
-        assert!(msg4.contains("usunięto"), "msg4={msg4}");
+        assert!(msg4.contains("removed"), "msg4={msg4}");
         assert!(state.panel_decors.is_empty());
         let last_app = &host.appearances.last().unwrap().1;
         assert!(last_app.get("color").is_none());

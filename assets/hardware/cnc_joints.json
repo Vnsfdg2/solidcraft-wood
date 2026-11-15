@@ -1,9 +1,9 @@
 {
-  "description": "Biblioteka połączeń gniazdowo-czopowych CNC z odciążeniem HSM i wierceniem Dogbone",
+  "description": "CNC T-Dogbone mortise and tenon joint library with HSM relief and dogbone corner drilling",
   "presets": [
     {
       "id": "T_DOGBONE_100_F12_W8",
-      "name": "T-Dogbone 100mm (Frez 12 + Wiertło fi 8)",
+      "name": "T-Dogbone 100mm (Endmill 12 + Drill 8)",
       "joint_width_mm": 100.0,
       "edge_offset_mm": 100.0,
       "default_count": 1,
@@ -17,7 +17,7 @@
     },
     {
       "id": "T_DOGBONE_60_F12_W8",
-      "name": "T-Dogbone 60mm (Frez 12 + Wiertło fi 8)",
+      "name": "T-Dogbone 60mm (Endmill 12 + Drill 8)",
       "joint_width_mm": 60.0,
       "edge_offset_mm": 50.0,
       "default_count": 2,

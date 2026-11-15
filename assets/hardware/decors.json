@@ -1,58 +1,58 @@
 {
-  "description": "Biblioteka dekorów płyt meblowych (kolor appearance i informacja o usłojeniu)",
+  "description": "Furniture panel decors library (appearance color and wood grain direction)",
   "presets": [
     {
       "id": "DAB_CRAFT_ZLOTY",
-      "name": "Dąb Craft Złoty K003",
+      "name": "Craft Gold Oak K003",
       "has_grain": true,
       "color": "#c89d66",
       "rgb": [200, 157, 102]
     },
     {
       "id": "DAB_SONOMA",
-      "name": "Dąb Sonoma Jasny",
+      "name": "Light Sonoma Oak",
       "has_grain": true,
       "color": "#d6ba94",
       "rgb": [214, 186, 148]
     },
     {
       "id": "DAB_LANCELOT",
-      "name": "Dąb Lancelot R20027",
+      "name": "Lancelot Oak R20027",
       "has_grain": true,
       "color": "#b58654",
       "rgb": [181, 134, 84]
     },
     {
       "id": "ORZECH_WARMIA",
-      "name": "Orzech Warmia",
+      "name": "Warmia Walnut",
       "has_grain": true,
       "color": "#8c5d3c",
       "rgb": [140, 93, 60]
     },
     {
       "id": "BIEL_ALPEJSKA",
-      "name": "Biel Alpejska W980",
+      "name": "Alpine White W980",
       "has_grain": false,
       "color": "#f1f5f9",
       "rgb": [241, 245, 249]
     },
     {
       "id": "KASZMIR",
-      "name": "Kaszmir U12168",
+      "name": "Cashmere U12168",
       "has_grain": false,
       "color": "#d4cabf",
       "rgb": [212, 202, 191]
     },
     {
       "id": "ANTRACYT",
-      "name": "Antracyt U164",
+      "name": "Anthracite U164",
       "has_grain": false,
       "color": "#475569",
       "rgb": [71, 85, 105]
     },
     {
       "id": "CZERN_MAT",
-      "name": "Czerń Mat U190",
+      "name": "Matte Black U190",
       "has_grain": false,
       "color": "#27272a",
       "rgb": [39, 39, 42]

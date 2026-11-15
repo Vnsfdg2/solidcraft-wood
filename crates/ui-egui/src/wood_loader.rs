@@ -26,7 +26,7 @@ impl WoodHost for SolveAppHost<'_> {
                     if let Some(prev) = backup {
                         self.0.session = prev;
                     }
-                    return Err(format!("Błąd w kroku {idx} ({cmd}): {err}"));
+                    return Err(format!("Error in step {idx} ({cmd}): {err}"));
                 }
             }
         }
@@ -231,7 +231,7 @@ pub fn show_dialogs(app: &mut SolveApp, ctx: &egui::Context) {
         let closed = crate::ui_kit::Window::new(
             egui::Id::new("sc_wood_bom"),
             "config_table",
-            "Tabela Rozkroju (SolidCraft Wood)",
+            "Cutting List (SolidCraft Wood)",
         )
         .cards(3.8)
         .show_body(ctx, |ui| {
@@ -505,18 +505,18 @@ pub fn paint_viewport_preview(app: &SolveApp, painter: &egui::Painter, proj: &cr
         } else {
 
         let (color_fill, color_stroke, label_prefix) = if ghost_cyl.is_screw {
-            // Wkręty: błękitny
+            // Screws: cyan
             (
                 Color32::from_rgba_unmultiplied(56, 189, 248, 60),
                 Color32::from_rgb(56, 189, 248),
-                "Wkręt",
+                "Screw",
             )
         } else {
-            // Kołki: zielony
+            // Dowels: green
             (
                 Color32::from_rgba_unmultiplied(34, 197, 94, 60),
                 Color32::from_rgb(34, 197, 94),
-                "Kołek",
+                "Dowel",
             )
         };
         let stroke = Stroke::new(1.8, color_stroke);
