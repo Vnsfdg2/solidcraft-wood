@@ -1,6 +1,6 @@
 [package]
 name = "wood"
-description = "SolidCraft Wood: parametric furniture design module (Kubatura, Formatki, Wolna Formatka, Jointy, Rozkrój) with hot-reload support"
+description = "SolidCraft Wood: parametric furniture design module (Envelope, Panels, Edgebanding, Decor & Grain, Connectors, T-Dogbone, Hinges, Drawer, Joints, Cutting List) with hot-reload support"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
