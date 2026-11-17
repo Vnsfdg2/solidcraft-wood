@@ -21,11 +21,8 @@ Select a face on the cabinet envelope (or an existing panel) to generate a panel
 ### 3. PANEL 1-2-3 (`Free Panel`)
 Create shelves, dividers, rails, and stretchers between two opposing side faces (`1. Two sides`), bounded by either two front/back faces or a face + width (`2. Front / Back`), and positioned relative to an attach face (`3. Attach face`).
 
-````carousel
 ![PANEL 1-2-3 — Two Faces Mode](docs/images/04_free_panel_01.png)
-<!-- slide -->
 ![PANEL 1-2-3 — Rail Mode (1 Face + Width)](docs/images/04_free_panel_02.png)
-````
 
 ### 4. Adapt Bodies
 Scan the document tree for loose or imported solid bodies outside panel components and adopt them into the cabinet as parametric wood panels (`S01_XX`).
