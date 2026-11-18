@@ -8,13 +8,14 @@ use egui::{Align2, Color32, FontId, Pos2, Rect, RichText, Sense, Stroke, StrokeK
 use crate::operations::{
     adapt_selected_bodies, apply_bom_range_cabinet, apply_bom_renames, apply_edgebanding,
     bind_all_joints, build_panel_name, clear_panel_edgebanding, compute_edgeband_code_and_length,
-    compute_tdogbone_plan, consume_adapt_picks, create_auto_panel, create_connectors,
-    create_drawer, create_free_panel, create_hinges, create_kubatura, create_tdogbone,
-    cutting_list_to_csv, export_panels_to_step, extract_panel_boxes, handle_decor_face_pick,
-    handle_edgeband_face_pick, load_decors_from_metadata, load_edgebands_from_metadata,
-    narrow_edge_side_label, next_formatka_name_with_state, parse_f64_or, refresh_cutting_list,
-    scan_adapt_candidates, set_panels_translucency, toggle_kubatura_visibility,
-    toggle_panels_translucency, update_ghost_preview, update_kubatura,
+    compute_lamello_p14_plan, compute_tdogbone_plan, consume_adapt_picks, create_auto_panel,
+    create_connectors, create_drawer, create_free_panel, create_hinges, create_kubatura,
+    create_lamello_p14, create_tdogbone, cutting_list_to_csv, export_panels_to_step,
+    extract_panel_boxes, handle_decor_face_pick, handle_edgeband_face_pick,
+    load_decors_from_metadata, load_edgebands_from_metadata, narrow_edge_side_label,
+    next_formatka_name_with_state, parse_f64_or, refresh_cutting_list, scan_adapt_candidates,
+    set_panels_translucency, toggle_kubatura_visibility, toggle_panels_translucency,
+    update_ghost_preview, update_kubatura,
 };
 use crate::{
     ActiveDialog, AutoPanelDirection, CncJointLibrary, ConnectorLibrary, DecorLibrary, DecorMode,
@@ -48,6 +49,7 @@ enum RibbonTool {
     Hinges,
     Drawer,
     TDogbone,
+    LamelloP14,
     Joints,
     CuttingList,
     Parameters,
@@ -133,6 +135,26 @@ pub fn consume_viewport_picks(state: &mut WoodState, host: &mut dyn WoodHost) {
             let valid = faces.into_iter().filter(|f| f.body != "Kubatura").collect::<Vec<_>>();
             if let Some(last) = valid.last() {
                 state.tdogbone_face_pick = Some(last.clone());
+                update_ghost_preview(state, host);
+            }
+        }
+        return;
+    }
+
+    if state.active_dialog == Some(ActiveDialog::LamelloP14) {
+        if state.lamello_active_slot == 0 {
+            let edges = host.take_selected_edges();
+            if let Some(last) = edges.last() {
+                state.lamello_edge_pick = Some(last.clone());
+                state.lamello_active_slot = 1;
+                host.enable_face_selection();
+                update_ghost_preview(state, host);
+            }
+        } else {
+            let faces = host.take_selected_faces();
+            let valid = faces.into_iter().filter(|f| f.body != "Kubatura").collect::<Vec<_>>();
+            if let Some(last) = valid.last() {
+                state.lamello_face_pick = Some(last.clone());
                 update_ghost_preview(state, host);
             }
         }
@@ -268,6 +290,7 @@ pub fn draw_ribbon(ui: &mut Ui, rect: Rect, state: &mut WoodState, host: &mut dy
             &[
                 (RibbonTool::Connectors, "Connectors"),
                 (RibbonTool::TDogbone, "T-Dogbone"),
+                (RibbonTool::LamelloP14, "Lamello P14"),
                 (RibbonTool::Hinges, "Hinges"),
                 (RibbonTool::Drawer, "DRAWER"),
                 (RibbonTool::Joints, "Bind Joints"),
@@ -304,6 +327,7 @@ pub fn draw_ribbon(ui: &mut Ui, rect: Rect, state: &mut WoodState, host: &mut dy
                 RibbonTool::DecorGrain => state.active_dialog == Some(ActiveDialog::DecorGrain),
                 RibbonTool::Connectors => state.active_dialog == Some(ActiveDialog::Connectors),
                 RibbonTool::TDogbone => state.active_dialog == Some(ActiveDialog::TDogbone),
+                RibbonTool::LamelloP14 => state.active_dialog == Some(ActiveDialog::LamelloP14),
                 RibbonTool::Hinges => state.active_dialog == Some(ActiveDialog::Hinges),
                 RibbonTool::Drawer => state.active_dialog == Some(ActiveDialog::Drawer),
                 RibbonTool::Joints => state.active_dialog == Some(ActiveDialog::Joints),
@@ -494,6 +518,19 @@ fn trigger_ribbon_tool(tool: RibbonTool, state: &mut WoodState, host: &mut dyn W
             }
             host.enable_edge_selection();
             state.active_dialog = Some(ActiveDialog::TDogbone);
+        }
+        RibbonTool::LamelloP14 => {
+            state.lamello_edge_pick = None;
+            state.lamello_face_pick = None;
+            state.lamello_active_slot = 0;
+            state.ghost_box = None;
+            state.ghost_cylinders = None;
+            state.ghost_lamello.clear();
+            if !state.kubatura_hidden {
+                let _ = toggle_kubatura_visibility(state, host);
+            }
+            host.enable_edge_selection();
+            state.active_dialog = Some(ActiveDialog::LamelloP14);
         }
         RibbonTool::Hinges => {
             state.hinge_face_picks = [None, None];
@@ -721,6 +758,33 @@ fn paint_tool_icon(painter: &egui::Painter, tool: RibbonTool, c: Pos2) {
             painter.circle_filled(pos2(cx - 11.5, cy - 3.5), 1.8, Color32::from_rgb(56, 189, 248));
             painter.circle_filled(pos2(cx - 11.5, cy + 3.5), 1.8, Color32::from_rgb(56, 189, 248));
         }
+        RibbonTool::LamelloP14 => {
+            // Formatka z gniazdem w płaszczyźnie (pionowa po lewej)
+            painter.rect(
+                Rect::from_min_max(pos2(cx - 13.0, cy - 11.0), pos2(cx - 4.0, cy + 11.0)),
+                1.0,
+                Color32::from_rgb(140, 153, 168),
+                Stroke::new(1.0, Color32::from_rgb(184, 196, 208)),
+                StrokeKind::Inside,
+            );
+            // Formatka z gniazdem w brzegu (pozioma po prawej)
+            painter.rect(
+                Rect::from_min_max(pos2(cx - 4.0, cy - 5.0), pos2(cx + 13.0, cy + 5.0)),
+                1.0,
+                Color32::from_rgb(224, 159, 62),
+                Stroke::new(1.0, Color32::from_rgb(255, 209, 102)),
+                StrokeKind::Inside,
+            );
+            // Złącze Clamex P-14 (ciemno-zielony element przez styk) + otwór pod imbus
+            painter.rect(
+                Rect::from_min_max(pos2(cx - 9.0, cy - 2.5), pos2(cx + 5.0, cy + 2.5)),
+                2.0,
+                Color32::from_rgb(74, 222, 128),
+                Stroke::new(1.0, Color32::WHITE),
+                StrokeKind::Inside,
+            );
+            painter.circle_filled(pos2(cx + 1.0, cy), 1.8, Color32::from_rgb(18, 22, 28));
+        }
         RibbonTool::Hinges => {
             // Drzwi / front (pomarańczowo-złoty)
             painter.rect(
@@ -826,6 +890,7 @@ pub fn active_dialog_meta(dialog: ActiveDialog) -> (&'static str, &'static str) 
         ActiveDialog::DecorGrain => ("Decor & Grain", "appearance"),
         ActiveDialog::Connectors => ("Connectors (Dowels / Screws)", "hole"),
         ActiveDialog::TDogbone => ("T-Dogbone Joint (CNC)", "combine"),
+        ActiveDialog::LamelloP14 => ("Lamello Clamex P-14", "combine"),
         ActiveDialog::Hinges => ("Cup Hinges", "hole"),
         ActiveDialog::Drawer => ("DRAWER (Drawer Systems)", "box"),
         ActiveDialog::Joints => ("Assembly & Joints", "joint"),
@@ -2017,6 +2082,215 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
                     .clicked()
                 {
                     let _ = run_and_report(state, host, create_tdogbone);
+                }
+            });
+        }
+
+        ActiveDialog::LamelloP14 => {
+            const CTRL_H: f32 = 24.0;
+            ui.add_space(2.0);
+
+            let trans_lbl = if state.panels_translucent {
+                "\u{1f441} Panel Translucency (ON: 0.50)"
+            } else {
+                "\u{1f441} Panel Translucency (OFF: 1.0)"
+            };
+            let trans_col = if state.panels_translucent { COL_GOLD } else { COL_BLUE };
+            if ui.add_sized(
+                [ui.available_width(), CTRL_H],
+                egui::Button::new(RichText::new(trans_lbl).color(trans_col)),
+            )
+            .on_hover_text("Toggles panel translucency to easily inspect internal Lamello slots")
+            .clicked()
+            {
+                let _ = toggle_panels_translucency(state, host);
+            }
+            ui.add_space(4.0);
+
+            let edge_text = match &state.lamello_edge_pick {
+                Some(e) => format!("{} [e{}]", e.body, e.index),
+                None => "Select (1st edge panel)".to_string(),
+            };
+            let has_edge = state.lamello_edge_pick.is_some();
+
+            let face_text = match &state.lamello_face_pick {
+                Some(f) => format!("{} [f{}]", f.body, f.index),
+                None => "Auto / Select (2nd face)".to_string(),
+            };
+            let has_face = state.lamello_face_pick.is_some();
+
+            egui::Grid::new("wood_lamello_p14_grid")
+                .num_columns(2)
+                .spacing([14.0, 6.0])
+                .min_col_width(92.0)
+                .show(ui, |ui| {
+                    let slot0_active = state.lamello_active_slot == 0;
+                    ui.add(egui::Label::new(RichText::new("1. Edge (Blade)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.horizontal(|ui| {
+                        let color = if slot0_active { COL_BLUE } else if has_edge { COL_GREEN } else { COL_TEXT };
+                        let mut text = RichText::new(&edge_text).color(color);
+                        if slot0_active { text = text.strong(); }
+                        let btn_w = if has_edge { 110.0 } else { 136.0 };
+                        if ui.add_sized([btn_w, CTRL_H], egui::Button::new(text)).clicked() {
+                            state.lamello_active_slot = 0;
+                            host.enable_edge_selection();
+                        }
+                        if has_edge && ui.add_sized([22.0, CTRL_H], egui::Button::new("\u{00d7}")).clicked() {
+                            state.lamello_edge_pick = None;
+                            state.lamello_active_slot = 0;
+                            state.ghost_box = None;
+                            host.enable_edge_selection();
+                        }
+                    });
+                    ui.end_row();
+
+                    let slot1_active = state.lamello_active_slot == 1;
+                    ui.add(egui::Label::new(RichText::new("2. Face (Milling)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.horizontal(|ui| {
+                        let color = if slot1_active { COL_BLUE } else if has_face { COL_GREEN } else { COL_TEXT };
+                        let mut text = RichText::new(&face_text).color(color);
+                        if slot1_active { text = text.strong(); }
+                        let btn_w = if has_face { 110.0 } else { 136.0 };
+                        if ui.add_sized([btn_w, CTRL_H], egui::Button::new(text)).clicked() {
+                            state.lamello_active_slot = 1;
+                            host.enable_face_selection();
+                        }
+                        if has_face && ui.add_sized([22.0, CTRL_H], egui::Button::new("\u{00d7}")).clicked() {
+                            state.lamello_face_pick = None;
+                            state.lamello_active_slot = 1;
+                            host.enable_face_selection();
+                            update_ghost_preview(state, host);
+                        }
+                    });
+                    ui.end_row();
+
+                    ui.add(egui::Label::new(RichText::new("Edge Z Offset").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.horizontal(|ui| {
+                        if ui.add_sized([80.0, CTRL_H], egui::TextEdit::singleline(&mut state.lamello_z_offset)).changed() {
+                            update_ghost_preview(state, host);
+                        }
+                        ui.label(RichText::new("mm").small().color(COL_MUTED));
+                    });
+                    ui.end_row();
+
+                    ui.add(egui::Label::new(RichText::new("From Ends (X)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.horizontal(|ui| {
+                        if ui.add_sized([80.0, CTRL_H], egui::TextEdit::singleline(&mut state.lamello_offset_x)).changed() {
+                            update_ghost_preview(state, host);
+                        }
+                        ui.label(RichText::new("mm").small().color(COL_MUTED));
+                    });
+                    ui.end_row();
+
+                    ui.add(egui::Label::new(RichText::new("Count (N)").color(COL_LABEL)).wrap_mode(egui::TextWrapMode::Extend));
+                    ui.horizontal(|ui| {
+                        if ui.add_sized([26.0, CTRL_H], egui::Button::new(" - ")).clicked() {
+                            let cnt = (parse_f64_or(&state.lamello_count, 2.0).round() as i64 - 1).max(1);
+                            state.lamello_count = cnt.to_string();
+                            update_ghost_preview(state, host);
+                        }
+                        if ui.add_sized([36.0, CTRL_H], egui::TextEdit::singleline(&mut state.lamello_count)).changed() {
+                            update_ghost_preview(state, host);
+                        }
+                        if ui.add_sized([26.0, CTRL_H], egui::Button::new(" + ")).clicked() {
+                            let cnt = (parse_f64_or(&state.lamello_count, 2.0).round() as i64 + 1).min(20);
+                            state.lamello_count = cnt.to_string();
+                            update_ghost_preview(state, host);
+                        }
+                        ui.label(RichText::new("pcs").small().color(COL_MUTED));
+                    });
+                    ui.end_row();
+                });
+
+            if let Some(edge) = &state.lamello_edge_pick {
+                ui.add_space(6.0);
+                let avail_w = ui.available_width();
+                egui::Frame::NONE
+                    .fill(Color32::from_rgb(26, 31, 39))
+                    .stroke(Stroke::new(1.0, Color32::from_rgb(45, 53, 66)))
+                    .corner_radius(4.0)
+                    .inner_margin(egui::Margin::symmetric(8, 6))
+                    .show(ui, |ui| {
+                        ui.set_min_width((avail_w - 16.0).max(160.0));
+                        let z_off = parse_f64_or(&state.lamello_z_offset, 9.0).max(1.0);
+                        let offset_x = parse_f64_or(&state.lamello_offset_x, 50.0).max(0.0);
+                        let count = parse_f64_or(&state.lamello_count, 2.0).round().clamp(1.0, 20.0) as u32;
+                        let boxes = extract_panel_boxes(host);
+
+                        match compute_lamello_p14_plan(
+                            edge,
+                            state.lamello_face_pick.as_ref(),
+                            &boxes,
+                            z_off,
+                            offset_x,
+                            count,
+                        ) {
+                            Ok(plan) => {
+                                ui.label(
+                                    RichText::new(format!(
+                                        "{} \u{2194} {} | {}x \u{00d8}100.4 \u{00d7} 10 (14 mm)",
+                                        plan.edge_panel,
+                                        plan.face_panel,
+                                        plan.count,
+                                    ))
+                                    .size(10.8)
+                                    .color(COL_GREEN),
+                                );
+                            }
+                            Err(err) => {
+                                ui.label(RichText::new(err).size(10.5).color(COL_RED));
+                            }
+                        }
+                    });
+            }
+
+            if !state.status_message.is_empty() && !state.status_error {
+                ui.add_space(4.0);
+                ui.label(RichText::new(&state.status_message).small().color(COL_GREEN));
+            }
+
+            ui.add_space(8.0);
+            ui.separator();
+            ui.add_space(6.0);
+
+            ui.horizontal(|ui| {
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Clear"))
+                    .on_hover_text("Clears selected edge and face and returns to Step 1")
+                    .clicked()
+                {
+                    state.lamello_edge_pick = None;
+                    state.lamello_face_pick = None;
+                    state.lamello_active_slot = 0;
+                    state.ghost_lamello.clear();
+                    host.enable_edge_selection();
+                }
+
+                let has_prev = state.lamello_last_edge_pick.is_some();
+                let prev_btn = egui::Button::new(
+                    RichText::new("\u{21ba} Previous")
+                        .color(if has_prev { COL_BLUE } else { Color32::from_rgb(110, 115, 125) }),
+                );
+                if ui.add_enabled(has_prev, prev_btn.min_size(vec2(130.0, CTRL_H)))
+                    .on_hover_text("Loads the last used edge and face")
+                    .clicked()
+                {
+                    state.lamello_edge_pick = state.lamello_last_edge_pick.clone();
+                    state.lamello_face_pick = state.lamello_last_face_pick.clone();
+                    update_ghost_preview(state, host);
+                }
+            });
+
+            ui.add_space(4.0);
+
+            ui.horizontal(|ui| {
+                if ui.add_sized([110.0, CTRL_H], egui::Button::new("Close")).clicked() {
+                    close_requested = true;
+                }
+                if ui.add_sized([130.0, CTRL_H], egui::Button::new(RichText::new("Apply").strong().color(COL_GREEN)))
+                    .on_hover_text("Cuts \u{00d8}100.4 \u{00d7} 10 mm (14 mm deep) Lamello P-14 slots in both panels and patterns symmetrically")
+                    .clicked()
+                {
+                    let _ = run_and_report(state, host, create_lamello_p14);
                 }
             });
         }
@@ -3229,6 +3503,7 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
     if close_requested {
         if dialog == ActiveDialog::Connectors
             || dialog == ActiveDialog::TDogbone
+            || dialog == ActiveDialog::LamelloP14
             || dialog == ActiveDialog::Hinges
             || dialog == ActiveDialog::Drawer
         {
@@ -3239,11 +3514,14 @@ pub fn draw_dialog_body(ui: &mut Ui, state: &mut WoodState, host: &mut dyn WoodH
             state.connector_last_face_pick = None;
             state.tdogbone_last_edge_pick = None;
             state.tdogbone_last_face_pick = None;
+            state.lamello_last_edge_pick = None;
+            state.lamello_last_face_pick = None;
             state.hinge_face_picks = [None, None];
             state.drawer_face_picks = [None, None, None, None];
             state.drawer_validation_info.clear();
             state.drawer_validation_error = false;
             state.ghost_cylinders = None;
+            state.ghost_lamello.clear();
             host.enable_face_selection();
         }
         state.ghost_box = None;

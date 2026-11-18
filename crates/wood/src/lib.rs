@@ -672,6 +672,7 @@ pub enum ActiveDialog {
     Hinges,
     Drawer,
     TDogbone,
+    LamelloP14,
     Joints,
 }
 
@@ -790,6 +791,18 @@ pub struct GhostCylinderData {
     pub depth_edge: f64,
     pub depth_face: f64,
     pub is_screw: bool, // false = kołek (zielony), true = wkręt (błękitny)
+}
+
+/// 3D ghost preview for a single Lamello P-14 joint (two opposing disc segments Ø100.4 × 10 mm cut 14 mm deep).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GhostLamelloSlot {
+    pub contact_center: [f64; 3],
+    pub edge_dir: [f64; 3],
+    pub width_dir: [f64; 3],
+    pub into_edge_dir: [f64; 3],
+    pub radius: f64,
+    pub thickness: f64,
+    pub depth: f64,
 }
 
 /// Serializable state of the Wood module, preserved seamlessly across DLL hot-reloads.
@@ -955,6 +968,26 @@ pub struct WoodState {
     #[serde(default = "default_one_u32")]
     pub tdogbone_counter: u32,
 
+    // Połączenie Lamello P-14 (tarcza Ø100.4 mm, grubość 10 mm, głębokość 14 mm)
+    #[serde(default)]
+    pub lamello_edge_pick: Option<EdgePick>,
+    #[serde(default)]
+    pub lamello_face_pick: Option<FacePick>,
+    #[serde(skip)]
+    pub lamello_last_edge_pick: Option<EdgePick>,
+    #[serde(skip)]
+    pub lamello_last_face_pick: Option<FacePick>,
+    #[serde(default)]
+    pub lamello_active_slot: usize,
+    #[serde(default = "default_lamello_z_offset")]
+    pub lamello_z_offset: String,
+    #[serde(default = "default_lamello_offset_x")]
+    pub lamello_offset_x: String,
+    #[serde(default = "default_lamello_count")]
+    pub lamello_count: String,
+    #[serde(default = "default_one_u32")]
+    pub lamello_counter: u32,
+
     // DRAWER (Systemy Szuflad) state
     #[serde(default)]
     pub drawer_face_picks: [Option<FacePick>; 4],
@@ -980,6 +1013,8 @@ pub struct WoodState {
     pub ghost_box: Option<GhostPreviewData>,
     #[serde(skip)]
     pub ghost_cylinders: Option<GhostCylinderData>,
+    #[serde(skip)]
+    pub ghost_lamello: Vec<GhostLamelloSlot>,
     #[serde(skip)]
     pub ghost_faces: Vec<GhostFacePreview>,
     #[serde(skip)]
@@ -1028,6 +1063,18 @@ fn default_drawer_height() -> String {
 
 fn default_drawer_nl() -> String {
     "450".into()
+}
+
+fn default_lamello_offset_x() -> String {
+    "50".into()
+}
+
+fn default_lamello_count() -> String {
+    "2".into()
+}
+
+fn default_lamello_z_offset() -> String {
+    "9".into()
 }
 
 impl Default for WoodState {
@@ -1127,6 +1174,15 @@ impl Default for WoodState {
             tdogbone_offset_x: "100".into(),
             tdogbone_count: "1".into(),
             tdogbone_counter: 1,
+            lamello_edge_pick: None,
+            lamello_face_pick: None,
+            lamello_last_edge_pick: None,
+            lamello_last_face_pick: None,
+            lamello_active_slot: 0,
+            lamello_z_offset: default_lamello_z_offset(),
+            lamello_offset_x: default_lamello_offset_x(),
+            lamello_count: default_lamello_count(),
+            lamello_counter: 1,
             drawer_face_picks: [None, None, None, None],
             drawer_active_slot: 0,
             drawer_system_id: default_drawer_system(),
@@ -1138,6 +1194,7 @@ impl Default for WoodState {
             drawer_validation_error: false,
             ghost_box: None,
             ghost_cylinders: None,
+            ghost_lamello: Vec::new(),
             ghost_faces: Vec::new(),
             ghost_arrows: Vec::new(),
         }

@@ -253,6 +253,7 @@ fn swap_in(app: &mut SolveApp, mut slot: DocSlot) -> DocSlot {
         outgoing_wood.active_dialog = None;
         outgoing_wood.ghost_box = None;
         outgoing_wood.ghost_cylinders = None;
+        outgoing_wood.ghost_lamello.clear();
         outgoing_wood.ghost_faces.clear();
     }
     let mut out = DocSlot {

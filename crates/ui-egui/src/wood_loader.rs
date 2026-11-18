@@ -189,6 +189,7 @@ pub fn show_dialogs(app: &mut SolveApp, ctx: &egui::Context) {
             ActiveDialog::DecorGrain => 295.0,
             ActiveDialog::Drawer => 295.0,
             ActiveDialog::TDogbone => 285.0,
+            ActiveDialog::LamelloP14 => 295.0,
             _ => 270.0,
         };
         let cards_count = dialog_w / card_w;
@@ -202,6 +203,7 @@ pub fn show_dialogs(app: &mut SolveApp, ctx: &egui::Context) {
         if header_closed || body_closed {
             if dialog == ActiveDialog::Connectors
                 || dialog == ActiveDialog::TDogbone
+                || dialog == ActiveDialog::LamelloP14
                 || dialog == ActiveDialog::Hinges
                 || dialog == ActiveDialog::Drawer
             {
@@ -214,11 +216,14 @@ pub fn show_dialogs(app: &mut SolveApp, ctx: &egui::Context) {
                 runtime.state.connector_last_face_pick = None;
                 runtime.state.tdogbone_last_edge_pick = None;
                 runtime.state.tdogbone_last_face_pick = None;
+                runtime.state.lamello_last_edge_pick = None;
+                runtime.state.lamello_last_face_pick = None;
                 runtime.state.hinge_face_picks = [None, None];
                 runtime.state.drawer_face_picks = [None, None, None, None];
                 runtime.state.drawer_validation_info.clear();
                 runtime.state.drawer_validation_error = false;
                 runtime.state.ghost_cylinders = None;
+                runtime.state.ghost_lamello.clear();
             }
             runtime.state.ghost_box = None;
             runtime.state.ghost_faces.clear();
@@ -387,6 +392,93 @@ pub fn paint_viewport_preview(app: &SolveApp, painter: &egui::Painter, proj: &cr
     }
 
     // 1. Podgląd cylindrów złączy (Kołki = zielone, Wkręty = błękitne) oraz zawiasów
+    if !app.wood.state.ghost_lamello.is_empty() {
+        let stroke = Stroke::new(1.8, Color32::from_rgba_unmultiplied(74, 222, 128, 230));
+        let chord_stroke = Stroke::new(1.2, Color32::from_rgba_unmultiplied(255, 255, 255, 190));
+        let fill = Color32::from_rgba_unmultiplied(74, 222, 128, 45);
+
+        for slot in &app.wood.state.ghost_lamello {
+            let c0 = Vec3::new(slot.contact_center[0], slot.contact_center[1], slot.contact_center[2]);
+            let e_dir = Vec3::new(slot.edge_dir[0], slot.edge_dir[1], slot.edge_dir[2]);
+            let w_dir = Vec3::new(slot.width_dir[0], slot.width_dir[1], slot.width_dir[2]);
+            let d_dir = Vec3::new(slot.into_edge_dir[0], slot.into_edge_dir[1], slot.into_edge_dir[2]);
+
+            let r = slot.radius;
+            let half_t = 0.5 * slot.thickness;
+            let d_center = r - slot.depth;
+            let alpha = (d_center / r).clamp(-1.0, 1.0).acos();
+            const ARC_STEPS: usize = 10;
+
+            let mut front_pts = Vec::with_capacity(ARC_STEPS * 2 + 2);
+            let mut back_pts = Vec::with_capacity(ARC_STEPS * 2 + 2);
+
+            // Fragment 1: w formatce 1 (łuk od -alpha do +alpha wzdłuż d_dir)
+            let c1 = c0 - d_dir * d_center;
+            for i in 0..=ARC_STEPS {
+                let t = -alpha + (2.0 * alpha) * (i as f64) / (ARC_STEPS as f64);
+                let p = c1 + d_dir * (r * t.cos()) + e_dir * (r * t.sin());
+                front_pts.push(p - w_dir * half_t);
+                back_pts.push(p + w_dir * half_t);
+            }
+
+            // Fragment 2: w formatce 2 (łuk powrotny od +alpha do -alpha wzdłuż -d_dir)
+            let c2 = c0 + d_dir * d_center;
+            for i in 0..=ARC_STEPS {
+                let t = alpha - (2.0 * alpha) * (i as f64) / (ARC_STEPS as f64);
+                let p = c2 - d_dir * (r * t.cos()) + e_dir * (r * t.sin());
+                front_pts.push(p - w_dir * half_t);
+                back_pts.push(p + w_dir * half_t);
+            }
+
+            let front_screen: Vec<Option<Pos2>> = front_pts.iter().map(|p| proj.to_screen(*p)).collect();
+            let back_screen: Vec<Option<Pos2>> = back_pts.iter().map(|p| proj.to_screen(*p)).collect();
+
+            let valid_front: Vec<Pos2> = front_screen.iter().filter_map(|&p| p).collect();
+            if valid_front.len() == front_pts.len() {
+                for shape in crate::viewport::projected_polygon(&valid_front, fill, Stroke::NONE) {
+                    painter.add(shape);
+                }
+            }
+            let valid_back: Vec<Pos2> = back_screen.iter().filter_map(|&p| p).collect();
+            if valid_back.len() == back_pts.len() {
+                for shape in crate::viewport::projected_polygon(&valid_back, fill, Stroke::NONE) {
+                    painter.add(shape);
+                }
+            }
+
+            let n = front_pts.len();
+            for i in 0..n {
+                let next = (i + 1) % n;
+                if let (Some(f0), Some(f1), Some(b1), Some(b0)) = (
+                    front_screen[i],
+                    front_screen[next],
+                    back_screen[next],
+                    back_screen[i],
+                ) {
+                    for shape in crate::viewport::projected_polygon(&[f0, f1, b1, b0], fill, Stroke::NONE) {
+                        painter.add(shape);
+                    }
+                    painter.line_segment([f0, f1], stroke);
+                    painter.line_segment([b0, b1], stroke);
+                }
+            }
+
+            // Linia cięciwy przecięcia obu fragmentów
+            let end_idx = ARC_STEPS;
+            if let (Some(f_a), Some(f_b), Some(b_a), Some(b_b)) = (
+                front_screen[0],
+                front_screen[end_idx],
+                back_screen[0],
+                back_screen[end_idx],
+            ) {
+                painter.line_segment([f_a, f_b], chord_stroke);
+                painter.line_segment([b_a, b_b], chord_stroke);
+                painter.line_segment([f_a, b_a], stroke);
+                painter.line_segment([f_b, b_b], stroke);
+            }
+        }
+    }
+
     if let Some(ghost_cyl) = &app.wood.state.ghost_cylinders {
         let cross_prod = |a: Vec3, b: Vec3| -> Vec3 {
             Vec3::new(

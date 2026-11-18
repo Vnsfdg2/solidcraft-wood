@@ -566,6 +566,31 @@ pub fn next_connector_letter_for_panel(panel_num: usize, host: &mut dyn WoodHost
     "A".to_string()
 }
 
+/// Finds the next available letter suffix (`A`, `B`, `C`...) for Lamello P-14 features on both panels.
+pub fn next_lamello_letter_for_panel(
+    edge_panel_num: usize,
+    face_panel_num: usize,
+    host: &mut dyn WoodHost,
+) -> String {
+    let existing = collect_timeline_feature_names(host);
+    let edge_pad = format!("{:02}", edge_panel_num);
+    let face_pad = format!("{:02}", face_panel_num);
+    for k in 0..1000 {
+        let letter = index_to_letter_suffix(k);
+        let candidates = [
+            format!("Lamello_Edge_{edge_pad}_{letter}"),
+            format!("Lamello_Hex_{edge_pad}_{letter}"),
+            format!("Lamello_Face_{face_pad}_{letter}"),
+            format!("Lamello_Pattern_Edge_{edge_pad}_{letter}"),
+            format!("Lamello_Pattern_Face_{face_pad}_{letter}"),
+        ];
+        if !candidates.iter().any(|c| existing.contains(c)) {
+            return letter;
+        }
+    }
+    "A".to_string()
+}
+
 /// Finds the next available letter suffix (`A`, `B`, `C`...) for hinge holes on `panel_num`.
 pub fn next_hinge_letter_for_panel(
     panel_num: usize,
@@ -1518,6 +1543,7 @@ pub fn create_free_panel(state: &mut WoodState, host: &mut dyn WoodHost) -> Resu
 pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
     state.ghost_box = None;
     state.ghost_cylinders = None;
+    state.ghost_lamello.clear();
     state.ghost_faces.clear();
     state.ghost_arrows.clear();
     match state.active_dialog {
@@ -1900,6 +1926,46 @@ pub fn update_ghost_preview(state: &mut WoodState, host: &mut dyn WoodHost) {
                         margins: [0.0; 4],
                         axis1: plan.edge_axis,
                         axis2: plan.width_axis,
+                    });
+                }
+            }
+        }
+        Some(crate::ActiveDialog::LamelloP14) => {
+            let Some(edge) = state.lamello_edge_pick.as_ref() else {
+                return;
+            };
+            let z_offset = parse_f64_or(&state.lamello_z_offset, 9.0).max(1.0);
+            let offset_x = parse_f64_or(&state.lamello_offset_x, 50.0).max(0.0);
+            let count = parse_f64_or(&state.lamello_count, 2.0).round().clamp(1.0, 20.0) as u32;
+
+            let boxes = extract_panel_boxes(host);
+            if let Ok(plan) = compute_lamello_p14_plan(
+                edge,
+                state.lamello_face_pick.as_ref(),
+                &boxes,
+                z_offset,
+                offset_x,
+                count,
+            ) {
+                let mut edge_dir = [0.0; 3];
+                edge_dir[plan.edge_axis] = 1.0;
+                let mut width_dir = [0.0; 3];
+                width_dir[plan.width_axis] = 1.0;
+
+                for &c_u in &plan.joint_centers {
+                    let mut center = [0.0; 3];
+                    center[plan.edge_axis] = c_u;
+                    center[plan.width_axis] = plan.w_center;
+                    center[plan.drill_axis] = plan.contact_d;
+
+                    state.ghost_lamello.push(crate::GhostLamelloSlot {
+                        contact_center: center,
+                        edge_dir,
+                        width_dir,
+                        into_edge_dir: plan.dir_into_edge,
+                        radius: 0.5 * LAMELLO_BLADE_DIA_MM,
+                        thickness: LAMELLO_SLOT_WIDTH_MM,
+                        depth: LAMELLO_SLOT_DEPTH_MM,
                     });
                 }
             }
@@ -4380,6 +4446,365 @@ pub fn create_tdogbone(state: &mut WoodState, host: &mut dyn WoodHost) -> Result
         preset.relief_radius_mm,
         plan.edge_panel,
         preset.dogbone_drill_dia_mm,
+        plan.face_panel
+    ))
+}
+
+pub const LAMELLO_BLADE_DIA_MM: f64 = 100.4;
+pub const LAMELLO_SLOT_WIDTH_MM: f64 = 10.0;
+pub const LAMELLO_SLOT_DEPTH_MM: f64 = 14.0;
+
+/// Plan geometryczny dla połączenia Lamello P-14 (dysk Ø100.4 × 10 mm, głębokość 14 mm w obu formatkach).
+#[derive(Clone, Debug, PartialEq)]
+pub struct LamelloP14Plan {
+    pub edge_panel: String,
+    pub face_panel: String,
+    pub edge_axis: usize,
+    pub drill_axis: usize,
+    pub width_axis: usize,
+    pub contact_d: f64,
+    pub sign_into_edge: f64,
+    pub sign_into_face: f64,
+    pub dir_into_edge: [f64; 3],
+    pub dir_into_face: [f64; 3],
+    pub pattern_dir: [f64; 3],
+    pub w_min: f64,
+    pub w_max: f64,
+    pub w_center: f64,
+    pub hex_start_w: f64,
+    pub hex_dir_w: f64,
+    pub z_offset_eff: f64,
+    pub edge_thickness: f64,
+    pub face_thickness: f64,
+    pub s_min: f64,
+    pub s_max: f64,
+    pub contact_length: f64,
+    pub chord_length: f64,
+    pub eff_offset_x: f64,
+    pub count: u32,
+    pub spacing: f64,
+    pub joint_centers: Vec<f64>,
+}
+
+/// Oblicza plan rozmieszczenia gniazd Lamello P-14 na podstawie wskazanej krawędzi i ściany przylegającej formatki.
+pub fn compute_lamello_p14_plan(
+    edge: &crate::EdgePick,
+    face: Option<&crate::FacePick>,
+    boxes: &[PanelBox],
+    z_offset: f64,
+    offset_x: f64,
+    count: u32,
+) -> Result<LamelloP14Plan, String> {
+    let base = compute_tdogbone_plan(edge, face, boxes, 16.0, 0.0, 1)?;
+
+    let r = 0.5 * LAMELLO_BLADE_DIA_MM;
+    let dy = r - LAMELLO_SLOT_DEPTH_MM;
+    let chord_length = 2.0 * (r * r - dy * dy).max(0.0).sqrt();
+
+    if base.contact_length < chord_length + 4.0 {
+        return Err(format!(
+            "Contact edge ({:.1} mm) is shorter than Lamello P-14 arc length ({:.1} mm).",
+            base.contact_length, chord_length
+        ));
+    }
+
+    let half_chord = 0.5 * chord_length;
+    let n_joints = count.clamp(1, 20);
+    let (eff_offset_x, spacing, joint_centers) = if n_joints == 1 {
+        let center = 0.5 * (base.s_min + base.s_max);
+        (0.5 * base.contact_length, 0.0, vec![center])
+    } else {
+        let min_center_off = half_chord + 2.0;
+        let max_center_off = (0.5 * base.contact_length - 1.0).max(min_center_off);
+        let off = offset_x.clamp(min_center_off, max_center_off);
+        let first_c = base.s_min + off;
+        let last_c = base.s_max - off;
+        let step = (last_c - first_c) / f64::from(n_joints - 1);
+        if step < chord_length + 1.0 {
+            return Err(format!(
+                "Lamello slots overlap (spacing {:.1} mm < arc length {:.1} mm). Reduce count or end offset.",
+                step, chord_length
+            ));
+        }
+        let mut centers = Vec::with_capacity(n_joints as usize);
+        for i in 0..n_joints {
+            centers.push(first_c + f64::from(i) * step);
+        }
+        (off, step, centers)
+    };
+
+    let half_slot_w = 0.5 * LAMELLO_SLOT_WIDTH_MM;
+    let clamped_z = z_offset.clamp(
+        half_slot_w + 0.5,
+        (base.edge_thickness - half_slot_w - 0.5).max(half_slot_w + 0.5),
+    );
+    let dist_to_min = (edge.point[base.width_axis] - base.w_min).abs();
+    let dist_to_max = (edge.point[base.width_axis] - base.w_max).abs();
+    let (hex_start_w, hex_dir_w, w_center) = if dist_to_max < dist_to_min {
+        (base.w_max, -1.0_f64, base.w_max - clamped_z)
+    } else {
+        (base.w_min, 1.0_f64, base.w_min + clamped_z)
+    };
+
+    let mut pattern_dir = [0.0; 3];
+    pattern_dir[base.edge_axis] = 1.0;
+
+    Ok(LamelloP14Plan {
+        edge_panel: base.edge_panel,
+        face_panel: base.face_panel,
+        edge_axis: base.edge_axis,
+        drill_axis: base.drill_axis,
+        width_axis: base.width_axis,
+        contact_d: base.contact_d,
+        sign_into_edge: base.sign_into_edge,
+        sign_into_face: base.sign_into_face,
+        dir_into_edge: base.dir_into_edge,
+        dir_into_face: base.dir_into_face,
+        pattern_dir,
+        w_min: base.w_min,
+        w_max: base.w_max,
+        w_center,
+        hex_start_w,
+        hex_dir_w,
+        z_offset_eff: clamped_z,
+        edge_thickness: base.edge_thickness,
+        face_thickness: base.face_thickness,
+        s_min: base.s_min,
+        s_max: base.s_max,
+        contact_length: base.contact_length,
+        chord_length,
+        eff_offset_x,
+        count: n_joints,
+        spacing,
+        joint_centers,
+    })
+}
+
+fn cut_single_lamello_disc_on_panel(
+    host: &mut dyn WoodHost,
+    feature_name: &str,
+    target_panel: &str,
+    plan: &LamelloP14Plan,
+    center_u: f64,
+    sign_into_panel: f64,
+) -> Result<(), String> {
+    let round3 = |v: f64| (v * 1000.0).round() / 1000.0;
+    let r = 0.5 * LAMELLO_BLADE_DIA_MM;
+    let offset_outside = r - LAMELLO_SLOT_DEPTH_MM;
+
+    let mut base = [0.0; 3];
+    base[plan.edge_axis] = round3(center_u);
+    base[plan.width_axis] = round3(plan.w_center - 0.5 * LAMELLO_SLOT_WIDTH_MM);
+    base[plan.drill_axis] = round3(plan.contact_d - sign_into_panel * offset_outside);
+
+    let mut axis = [0.0; 3];
+    axis[plan.width_axis] = 1.0;
+
+    host.execute(
+        "solid.cylinder",
+        json!({
+            "name": feature_name,
+            "base": base,
+            "axis": axis,
+            "diameter": LAMELLO_BLADE_DIA_MM,
+            "height": LAMELLO_SLOT_WIDTH_MM,
+            "operation": "cut",
+            "targets": [target_panel],
+            "participants": [target_panel]
+        }),
+    )
+    .map_err(|e| format!("Failed to cut Lamello cylinder in '{target_panel}': {e}"))?;
+
+    Ok(())
+}
+
+/// Tworzy połączenie Lamello P-14 na dwóch przylegających formatkach:
+/// wycina pierwsze gniazdo dyskiem Ø100.4 × 10 mm na głębokość 14 mm w dwóch podejściach
+/// (formatka 1 i przylegająca formatka 2), a następnie powiela szykiem prostokątnym (`N >= 2`).
+pub fn create_lamello_p14(state: &mut WoodState, host: &mut dyn WoodHost) -> Result<String, String> {
+    let Some(mut edge) = state.lamello_edge_pick.clone() else {
+        return Err("Step 1: Click the contact edge of the first panel first.".into());
+    };
+    let mut face_pick = state.lamello_face_pick.clone();
+
+    let z_offset = parse_f64_or(&state.lamello_z_offset, 9.0).max(1.0);
+    let offset_x = parse_f64_or(&state.lamello_offset_x, 50.0).max(0.0);
+    let count = parse_f64_or(&state.lamello_count, 2.0).round().clamp(1.0, 20.0) as u32;
+
+    let boxes = extract_panel_boxes(host);
+    let mut plan = compute_lamello_p14_plan(
+        &edge,
+        face_pick.as_ref(),
+        &boxes,
+        z_offset,
+        offset_x,
+        count,
+    )?;
+
+    let first_center = plan
+        .joint_centers
+        .first()
+        .copied()
+        .ok_or_else(|| "No Lamello slot center computed.".to_string())?;
+
+    let _ = host.execute("component.activate", json!({ "component": "root" }));
+
+    let (resolved_face_panel, face_panel_num) =
+        ensure_body_is_numbered_panel(&plan.face_panel, state, host);
+    if resolved_face_panel != plan.face_panel {
+        if edge.body == plan.face_panel {
+            edge.body = resolved_face_panel.clone();
+        }
+        if let Some(fp) = face_pick.as_mut()
+            && fp.body == plan.face_panel
+        {
+            fp.body = resolved_face_panel.clone();
+        }
+        plan.face_panel = resolved_face_panel;
+    }
+
+    let (resolved_edge_panel, edge_panel_num) =
+        ensure_body_is_numbered_panel(&plan.edge_panel, state, host);
+    if resolved_edge_panel != plan.edge_panel {
+        if edge.body == plan.edge_panel {
+            edge.body = resolved_edge_panel.clone();
+        }
+        if let Some(fp) = face_pick.as_mut()
+            && fp.body == plan.edge_panel
+        {
+            fp.body = resolved_edge_panel.clone();
+        }
+        plan.edge_panel = resolved_edge_panel;
+    }
+
+    let kubatura_was_visible = !state.kubatura_hidden;
+    let restore_visibility = |host: &mut dyn WoodHost, edge_p: &str, face_p: &str, show_kub: bool| {
+        let mut items = vec![edge_p.to_string(), face_p.to_string()];
+        if show_kub {
+            items.push("Kubatura".to_string());
+        }
+        let _ = host.execute("browser.visibility", json!({ "items": items, "visible": true }));
+    };
+
+    let letter = next_lamello_letter_for_panel(edge_panel_num, face_panel_num, host);
+    state.lamello_counter += 1;
+
+    let edge_feat_name = format!("Lamello_Edge_{:02}_{letter}", edge_panel_num);
+    let hex_feat_name = format!("Lamello_Hex_{:02}_{letter}", edge_panel_num);
+    let face_feat_name = format!("Lamello_Face_{:02}_{letter}", face_panel_num);
+    let edge_pattern_name = format!("Lamello_Pattern_Edge_{:02}_{letter}", edge_panel_num);
+    let face_pattern_name = format!("Lamello_Pattern_Face_{:02}_{letter}", face_panel_num);
+
+    // Podejście 1: Wycięcie cylindrem Ø100.4 × 10 mm + otwór Ø6 w formatce 1 (`plan.edge_panel`, formatka 2 ukryta)
+    let mut hide_for_edge = vec![plan.face_panel.clone()];
+    if kubatura_was_visible {
+        hide_for_edge.push("Kubatura".to_string());
+    }
+    let _ = host.execute("browser.visibility", json!({ "items": hide_for_edge, "visible": false }));
+    let _ = host.execute("browser.visibility", json!({ "items": [plan.edge_panel], "visible": true }));
+    let _ = host.execute("select.clear", json!({}));
+
+    if let Err(e) = cut_single_lamello_disc_on_panel(
+        host,
+        &edge_feat_name,
+        &plan.edge_panel,
+        &plan,
+        first_center,
+        plan.sign_into_edge,
+    ) {
+        restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
+        return Err(e);
+    }
+
+    // Otwór Ø6 w środku szerokości gniazda, od strony zaznaczonej krawędzi, odsunięty o 7.5 mm od brzegu
+    let round3 = |v: f64| (v * 1000.0).round() / 1000.0;
+    let mut hex_pos = [0.0; 3];
+    hex_pos[plan.edge_axis] = round3(first_center);
+    hex_pos[plan.width_axis] = round3(plan.hex_start_w);
+    hex_pos[plan.drill_axis] = round3(plan.contact_d + plan.sign_into_edge * 7.5);
+    let mut hex_dir = [0.0; 3];
+    hex_dir[plan.width_axis] = plan.hex_dir_w;
+
+    if let Err(e) = host.execute(
+        "solid.hole",
+        json!({
+            "name": hex_feat_name,
+            "position": hex_pos,
+            "direction": hex_dir,
+            "diameter": 6.0,
+            "depth": round3(plan.z_offset_eff),
+            "targets": [plan.edge_panel]
+        }),
+    ) {
+        restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
+        return Err(format!(
+            "Failed to drill Lamello Ø6 hole in '{}': {e}",
+            plan.edge_panel
+        ));
+    }
+
+    if plan.count >= 2 {
+        let _ = host.execute(
+            "solid.pattern.rectangular",
+            json!({
+                "name": edge_pattern_name,
+                "features": [edge_feat_name, hex_feat_name],
+                "dir1": plan.pattern_dir,
+                "count1": plan.count,
+                "spacing1": plan.spacing,
+            }),
+        );
+    }
+
+    // Podejście 2: Wycięcie cylindrem Ø100.4 × 10 mm w przylegającej formatce 2 (`plan.face_panel`, formatka 1 ukryta)
+    let _ = host.execute("browser.visibility", json!({ "items": [plan.edge_panel], "visible": false }));
+    let _ = host.execute("browser.visibility", json!({ "items": [plan.face_panel], "visible": true }));
+    let _ = host.execute("select.clear", json!({}));
+
+    if let Err(e) = cut_single_lamello_disc_on_panel(
+        host,
+        &face_feat_name,
+        &plan.face_panel,
+        &plan,
+        first_center,
+        plan.sign_into_face,
+    ) {
+        restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
+        return Err(e);
+    }
+
+    if plan.count >= 2 {
+        let _ = host.execute(
+            "solid.pattern.rectangular",
+            json!({
+                "name": face_pattern_name,
+                "features": [face_feat_name],
+                "dir1": plan.pattern_dir,
+                "count1": plan.count,
+                "spacing1": plan.spacing,
+            }),
+        );
+    }
+
+    restore_visibility(host, &plan.edge_panel, &plan.face_panel, kubatura_was_visible);
+
+    state.lamello_last_edge_pick = Some(edge);
+    state.lamello_last_face_pick = face_pick;
+    state.lamello_edge_pick = None;
+    state.lamello_face_pick = None;
+    state.ghost_lamello.clear();
+    state.lamello_active_slot = 0;
+    host.enable_edge_selection();
+
+    Ok(format!(
+        "Added {}× Lamello P-14 (Ø{:.1} × {:.0} mm, depth {:.0} mm) [#{:02}_{}] in '{}' & '{}'. Pick next pair.",
+        plan.count,
+        LAMELLO_BLADE_DIA_MM,
+        LAMELLO_SLOT_WIDTH_MM,
+        LAMELLO_SLOT_DEPTH_MM,
+        face_panel_num,
+        letter,
+        plan.edge_panel,
         plan.face_panel
     ))
 }
@@ -7132,6 +7557,56 @@ mod tests {
         // Dwa połączenia (N=2, szerokość 60 mm, od boków 40 mm na odcinku 300 mm -> u_first=70, u_last=230)
         let plan2 = compute_tdogbone_plan(&edge, Some(&face), &boxes, 60.0, 40.0, 2).unwrap();
         assert_eq!(plan2.joint_centers, vec![70.0, 230.0]);
+    }
+
+    #[test]
+    fn test_compute_lamello_p14_plan_and_chord() {
+        let face_panel = PanelBox {
+            name: "PANEL_FACE".into(),
+            min: [0.0, 0.0, 0.0],
+            max: [300.0, 200.0, 18.0],
+        };
+        let edge_panel = PanelBox {
+            name: "PANEL_EDGE".into(),
+            min: [182.0, 0.0, 18.0],
+            max: [200.0, 200.0, 318.0],
+        };
+        let boxes = vec![face_panel, edge_panel];
+
+        let edge = EdgePick {
+            body: "PANEL_EDGE".into(),
+            index: 1,
+            point: [200.0, 100.0, 18.0],
+            start: [200.0, 0.0, 18.0],
+            end: [200.0, 200.0, 18.0],
+            length: 200.0,
+        };
+        let face = FacePick {
+            body: "PANEL_FACE".into(),
+            index: 5,
+            point: [190.0, 100.0, 18.0],
+        };
+
+        let plan = compute_lamello_p14_plan(&edge, Some(&face), &boxes, 9.0, 50.0, 2).unwrap();
+
+        assert_eq!(plan.joint_centers, vec![50.0, 150.0]);
+        assert!((plan.w_center - 191.0).abs() < 1e-6);
+        assert!((plan.chord_length - 69.55861).abs() < 1e-3);
+        assert_eq!(plan.count, 2);
+        assert!((plan.spacing - 100.0).abs() < 1e-6);
+
+        let plan_86 = compute_lamello_p14_plan(&edge, Some(&face), &boxes, 8.6, 50.0, 2).unwrap();
+        assert!((plan_86.w_center - 191.4).abs() < 1e-6);
+        assert!((plan_86.hex_start_w - 200.0).abs() < 1e-6);
+        assert_eq!(plan_86.hex_dir_w, -1.0);
+        assert!((plan_86.z_offset_eff - 8.6).abs() < 1e-6);
+
+        let mut edge_min_side = edge;
+        edge_min_side.point[0] = 182.0;
+        let plan_min = compute_lamello_p14_plan(&edge_min_side, Some(&face), &boxes, 8.6, 50.0, 2).unwrap();
+        assert!((plan_min.w_center - 190.6).abs() < 1e-6);
+        assert!((plan_min.hex_start_w - 182.0).abs() < 1e-6);
+        assert_eq!(plan_min.hex_dir_w, 1.0);
     }
 
     #[test]
